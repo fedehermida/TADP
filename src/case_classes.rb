@@ -37,6 +37,31 @@ module Inmutabilidad
         end
       end
 
+      def obtener_array_atributos
+        instance_variables.map{|ivar| instance_variable_get ivar}
+      end
+
+
+      def to_s
+        "#{self.class.name}(#{self.obtener_array_atributos.join(", ")})"
+      end
+
+      def ==(objeto)
+        super
+        atributosPropios = self.obtener_array_atributos
+        atributosObjetos = objeto.obtener_array_atributos
+
+        self.class == objeto.class && atributosPropios == atributosObjetos
+
+      end
+
+      def hash
+        listaHash = self.obtener_array_atributos.map {|var| var.hash}
+        sum = 7
+        sumarListaHash = listaHash.each { |a| sum+=a }
+        sum
+      end
+
       def method_missing(symbol,*args)
 
         raise "Error! El metodo #{symbol.to_s} no esta definido!"
@@ -48,6 +73,10 @@ module Inmutabilidad
       def self.inherited(subclass)
         raise "Herencia no permitida"
       end
+
+
+
+
     end
 
     clazz.define_singleton_method :attr_accessor do
@@ -61,8 +90,6 @@ module Inmutabilidad
         clazz.send(:instance_variable_set, "@#{argumento.to_s}".to_sym, 0)
       end
     end
-
-
 
     clazz.class_eval &block
     clazz.freeze
@@ -102,4 +129,3 @@ module Inmutabilidad
 end
 
 include Inmutabilidad
-
