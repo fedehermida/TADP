@@ -74,6 +74,17 @@ module Inmutabilidad
         raise "Herencia no permitida"
       end
 
+      def copy(*args)
+        copia=self.dup
+        lambdas=args.flatten
+        listaDeParametros= lambdas.map{|lambda|lambda.parameters.last.last}
+        lista_zipeada=lambdas.zip(listaDeParametros)
+        lista_zipeada.map{|unAttr| x=(unAttr.first)
+        copia.instance_variable_set("@#{unAttr.last}",x.call(copia.send(unAttr.last)))}
+        copia.freeze
+      end
+
+
 
 
 
@@ -129,3 +140,4 @@ module Inmutabilidad
 end
 
 include Inmutabilidad
+
