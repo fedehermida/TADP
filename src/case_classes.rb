@@ -76,12 +76,12 @@ module Inmutabilidad
 
       def copy(*args)
         copia=self.dup
-        lambdas=args.flatten
-        listaDeParametros= lambdas.map{|lambda|lambda.parameters.last.last}
-        lista_zipeada=lambdas.zip(listaDeParametros)
-        lista_zipeada.map{|unAttr| x=(unAttr.first)
-        copia.instance_variable_set("@#{unAttr.last}",x.call(copia.send(unAttr.last)))}
-        copia.freeze
+          lambdas=args.flatten
+            lista_parametros= lambdas.map{|lambda|lambda.parameters.last.last}
+              lista_zipeada=lambdas.zip(lista_parametros)
+                lista_zipeada.map{|unAttr| x=(unAttr.first)
+                copia.instance_variable_set("@#{unAttr.last}",x.call(copia.send(unAttr.last)))}
+                  copia.freeze
       end
 
 
@@ -140,4 +140,23 @@ module Inmutabilidad
 end
 
 include Inmutabilidad
+
+case_class Guerrero do
+
+  attr_accessor :ataque, :defensa
+
+
+
+
+
+end
+
+jorge=Guerrero.new(40,50)
+
+puts jorge.defensa
+puts jorge.ataque
+
+julio = jorge.copy ->(defensa){defensa+50}, ->(ataque){ataque+60}
+puts julio.ataque
+puts julio.defensa
 
