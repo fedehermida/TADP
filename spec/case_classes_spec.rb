@@ -105,6 +105,27 @@ describe 'test de case_classes' do
 
   end
 
-  
+  it 'test copy con lambdas, error en los nombres de los parametros distintos a los de los atributos'do
+      case_class Guerrero do
+        attr_accessors :ataque, :defensa
+      end
+      jorge=Guerrero(40,50)
+      julio=jorge.copy ->(fuerza){fuerza+30}
+
+
+      expected(julio.fuerza).to raise_error(NoMethodError)
+  end
+
+  it 'test modificar la instacia de una case class,error no se puede estan frizadas' do
+    case_class Guerrero do
+      attr_accessors :ataque, :defensa
+    end
+    jorge=Guerrero(40,50)
+
+    expect(jorge.defensa=30).to raise_error(NoMethodError)
 
   end
+
+
+  end
+
