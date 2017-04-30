@@ -20,6 +20,48 @@ class Selector
 end
 
 
+module Pattern_Matching
+
+  def _
+    _ = Object.new
+    _.instance_eval do
+      def ===(arg)
+      true
+      end
+  end
+    return _
+  end
+
+  class Patron_is_a
+
+    attr_accessor :clase
+
+    def initialize klass
+
+      @clase = klass
+
+    end
+
+    def === objeto
+
+      objeto.singleton_class.ancestors.include?(self.clase)
+
+    end
+
+
+  end
+
+  def is_a clase
+
+    Patron_is_a.new(clase)
+
+  end
+
+
+end
+
+
+
 
 
 
@@ -160,11 +202,10 @@ module Inmutabilidad
 end
 
 include Inmutabilidad
+include Pattern_Matching
 
-class Menem
 
 
-end
 
 
 case_class Guerrero do
@@ -176,6 +217,12 @@ case_class Guerrero do
 
 
 end
+class Menem
+
+
+end
+
+
 case_object Mono do
 
 
@@ -186,6 +233,8 @@ end
 
 sofia = Mono
 jorge=Guerrero.new(40,50)
+
+
 
 puts jorge.defensa
 puts jorge.ataque
