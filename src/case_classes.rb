@@ -1,12 +1,26 @@
+class Selector
 
-class Symbol
-  def < arg
-    if arg.is_a? Class
-      return [self,arg]
-    end
-    super < arg
+  attr_accessor :clases
+
+  def initialize(unaClase)
+
+    @clases = [unaClase]
+    return self
+
   end
+
+
+  def <(unaClase)
+
+    @clases = @clases + [unaClase]
+    return self
+
+  end
+
 end
+
+
+
 
 
 module Inmutabilidad
@@ -15,11 +29,12 @@ module Inmutabilidad
 
   def case_class name, &block
 
-    if name.is_a? Array
-      clazz = Class.new(name[1])
-      name = name[0]
+    if name.clases.length > 1
+      clazz = Class.new(name.clases[1])
+      name = name.clases[0]
     else
       clazz = Class.new
+      name = name.clases[0]
     end
     Object.const_set name, clazz
 
@@ -76,12 +91,12 @@ module Inmutabilidad
 
       def copy(*args)
         copia=self.dup
-          lambdas=args.flatten
-            lista_parametros= lambdas.map{|lambda|lambda.parameters.last.last}
-              lista_zipeada=lambdas.zip(lista_parametros)
-                lista_zipeada.map{|unAttr| x=(unAttr.first)
-                copia.instance_variable_set("@#{unAttr.last}",x.call(copia.send(unAttr.last)))}
-                  copia.freeze
+        lambdas=args.flatten
+        lista_parametros= lambdas.map{|lambda|lambda.parameters.last.last}
+        lista_zipeada=lambdas.zip(lista_parametros)
+        lista_zipeada.map{|unAttr| x=(unAttr.first)
+        copia.instance_variable_set("@#{unAttr.last}",x.call(copia.send(unAttr.last)))}
+        copia.freeze
       end
 
 
@@ -114,9 +129,12 @@ module Inmutabilidad
 
   def case_object name, &block
 
-    if name.is_a? Array
+    if name.clases.length > 1
 
       raise "Los Case Objects no pueden heredar"
+    else
+
+      name = name.clases[0]
 
     end
 
@@ -131,7 +149,9 @@ module Inmutabilidad
 
   class ::Object
     def self.const_missing const
-      const.to_sym
+      Selector.new(const)
+
+
 
     end
   end
@@ -140,6 +160,12 @@ module Inmutabilidad
 end
 
 include Inmutabilidad
+
+class Menem
+
+
+end
+
 
 case_class Guerrero do
 
@@ -150,7 +176,15 @@ case_class Guerrero do
 
 
 end
+case_object Mono do
 
+
+
+
+
+end
+
+sofia = Mono
 jorge=Guerrero.new(40,50)
 
 puts jorge.defensa
@@ -159,4 +193,3 @@ puts jorge.ataque
 julio = jorge.copy ->(defensa){defensa+50}, ->(ataque){ataque+60}
 puts julio.ataque
 puts julio.defensa
-
