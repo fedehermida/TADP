@@ -22,13 +22,26 @@ end
 
 module Pattern_Matching
 
+  class Resultado
+
+    attr_accessor :resultado
+
+    def initialize(valor)
+
+      @resultado = valor
+    end
+
+
+  end
+
+
   def _
     _ = Object.new
     _.instance_eval do
       def ===(arg)
-      true
+        true
       end
-  end
+    end
     return _
   end
 
@@ -36,7 +49,7 @@ module Pattern_Matching
 
     attr_accessor :clase
 
-    def initialize klass
+    def initialize(klass)
 
       @clase = klass
 
@@ -44,7 +57,12 @@ module Pattern_Matching
 
     def === objeto
 
-      objeto.singleton_class.ancestors.include?(self.clase)
+      if objeto.is_a?(self.clase)
+        return true
+      else
+        return false
+
+      end
 
     end
 
@@ -56,6 +74,52 @@ module Pattern_Matching
     Patron_is_a.new(clase)
 
   end
+
+  class Patron_has
+
+    attr_accessor :atributo, :valor
+
+    def initialize(unAtributo,unValor)
+
+      @atributo = unAtributo
+      @valor = unValor
+
+
+    end
+
+    def === objeto
+
+
+
+      if objeto.array_atributos.include?(atributo.to_s)
+        atributoArroba = ("@"+atributo.to_s).to_sym
+        if objeto.instance_variable_get(atributoArroba) == self.valor
+          puts "El patron matchea"
+          true
+
+        else
+          puts "El patron falla: el #{atributo} no es #{valor}"
+          false
+
+        end
+      else
+        puts "El patron falla: no hay atributo #{atributo}"
+        false
+      end
+
+    end
+
+
+  end
+
+
+  def has(nombre, atributo)
+
+    patron =Patron_has.new(nombre,atributo)
+
+
+  end
+
 
 
 end
@@ -96,6 +160,11 @@ module Inmutabilidad
 
       def obtener_array_atributos
         instance_variables.map{|ivar| instance_variable_get ivar}
+      end
+
+      def array_atributos
+        temp = instance_variables.map{|ivar| ivar.to_s.delete("@")}
+        temp
       end
 
 
@@ -205,40 +274,3 @@ include Inmutabilidad
 include Pattern_Matching
 
 
-
-
-
-case_class Guerrero do
-
-  attr_accessor :ataque, :defensa
-
-
-
-
-
-end
-class Menem
-
-
-end
-
-
-case_object Mono do
-
-
-
-
-
-end
-
-sofia = Mono
-jorge=Guerrero.new(40,50)
-
-
-
-puts jorge.defensa
-puts jorge.ataque
-
-julio = jorge.copy ->(defensa){defensa+50}, ->(ataque){ataque+60}
-puts julio.ataque
-puts julio.defensa
