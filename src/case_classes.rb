@@ -168,6 +168,24 @@ module Inmutabilidad
       end
 
 
+      def === (otroCaseClass)
+        atributosPropios = otroCaseClass.obtener_array_atributos
+        atributosOtros = self.obtener_array_atributos
+
+        listaZip = atributosOtros.zip atributosPropios
+
+        booleanos = listaZip.map { |a| a.first === a.last }
+        if (booleanos.any? {|a| a == false})
+
+          return false
+        else
+          return true
+        end
+
+      end
+
+
+
       def to_s
         "#{self.class.name}(#{self.obtener_array_atributos.join(", ")})"
       end
@@ -256,7 +274,13 @@ module Inmutabilidad
     define_singleton_method objeto.to_s.to_sym do
       objeto
     end
+
+
+
+
+
   end
+
 
   class ::Object
     def self.const_missing const
@@ -272,5 +296,3 @@ end
 
 include Inmutabilidad
 include Pattern_Matching
-
-
