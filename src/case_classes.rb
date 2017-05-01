@@ -22,19 +22,6 @@ end
 
 module Pattern_Matching
 
-  class Resultado
-
-    attr_accessor :resultado
-
-    def initialize(valor)
-
-      @resultado = valor
-    end
-
-
-  end
-
-
   def _
     _ = Object.new
     _.instance_eval do
@@ -55,9 +42,9 @@ module Pattern_Matching
 
     end
 
-    def === objeto
+    def === unaClase
 
-      if objeto.is_a?(self.clase)
+      if unaClase.is_a?(self.clase)
         return true
       else
         return false
@@ -276,11 +263,21 @@ module Inmutabilidad
     end
 
 
+    objeto.singleton_class.send (define_method :to_s do
 
+      name
 
+    end)
+
+    objeto.singleton_class.send (define_method :copy do
+
+      objeto.clone
+
+    end)
+
+    objeto.freeze
 
   end
-
 
   class ::Object
     def self.const_missing const
@@ -296,3 +293,20 @@ end
 
 include Inmutabilidad
 include Pattern_Matching
+
+
+case_class Guerrero7 do
+  attr_accessor :ataque, :defensa
+end
+
+
+jorge=Guerrero7(40,50)
+
+puts jorge.class
+
+valor = case jorge
+          when is_a(Guerrero7)
+            true
+        end
+
+puts valor
