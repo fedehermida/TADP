@@ -1,7 +1,6 @@
-require_relative '../src/case_classes'
+require_relative 'C:\Users\Cabeza de Tacho\Desktop\tadp-2017c1-grupo1-master\src\case_classes'
 require 'rspec'
-
-
+require "spec_helper"
 
 
 describe 'test de case_classes' do
@@ -133,5 +132,227 @@ describe 'test de case_classes' do
   end
 
 
-end
+  it 'test pattern matching _ siempre es true' do
+    objeto = Object.new
+    valor = case objeto
+              when _
+                true
+            end
 
+
+
+    valor.should == true
+
+  end
+
+  it 'test pattern matching is_a es de su propia clase' do
+    case_class Guerrero10 do
+      attr_accessor :ataque, :defensa
+    end
+
+
+    jorge=Guerrero10(40,50)
+
+    valor = case jorge
+              when is_a(Guerrero10)
+                true
+            end
+
+
+
+    expect(valor).to eq(true)
+  end
+
+  it 'test pattern matching is_a pertenece a sus ancestros' do
+    case_class Guerrero11 do
+      attr_accessor :ataque, :defensa
+    end
+
+
+    jorge=Guerrero11(40,50)
+
+    valor = case jorge
+              when is_a(Object)
+                true
+            end
+
+
+
+    expect(valor).to eq(true)
+  end
+  it 'test pattern matching is_a no pertenece a la clase Array' do
+    case_class Guerrero12 do
+      attr_accessor :ataque, :defensa
+    end
+
+
+    jorge=Guerrero12(40,50)
+
+    valor = case jorge
+              when is_a(Array)
+                true
+            end
+
+
+
+    expect(valor).to eq(nil)
+  end
+  it 'test pattern matching has posee el atributo y coincide el valor' do
+    case_class Guerrero13 do
+      attr_accessor :ataque, :defensa
+    end
+
+
+    jorge=Guerrero13(40,50)
+
+    valor = case jorge
+              when has(:ataque, 40)
+                true
+            end
+
+
+
+    expect(valor).to eq(true)
+  end
+  it 'test pattern matching has posee el atributo pero no coincide el valor' do
+    case_class Guerrero14 do
+      attr_accessor :ataque, :defensa
+    end
+
+
+    jorge=Guerrero14(40,50)
+
+    valor = case jorge
+              when has(:ataque, 90)
+                true
+            end
+
+
+
+    expect(valor).to eq(nil)
+  end
+  it 'test pattern matching has no posee el atributo' do
+    case_class Guerrero15 do
+      attr_accessor :ataque, :defensa
+    end
+
+
+    jorge=Guerrero15(40,50)
+
+    valor = case jorge
+              when has(:escudo, 90)
+                true
+            end
+
+
+
+    expect(valor).to eq(nil)
+  end
+  it 'test pattern matching case_cases no coincide la nota' do
+    case_class Alumno do
+
+      attr_accessor :nombre, :termino
+
+
+    end
+
+    case_class Termino do
+
+      attr_accessor :nota
+
+    end
+
+
+    alumno = Alumno("Jose", Termino(9))
+    valor = case alumno
+              when Alumno( "Jose", Termino(7) )
+                true
+            end
+
+
+
+    expect(valor).to eq(nil)
+  end
+  it 'test pattern matching case_cases no coincide el nombre ' do
+    case_class Alumno1 do
+
+      attr_accessor :nombre, :termino
+
+
+    end
+
+    case_class Termino1 do
+
+      attr_accessor :nota
+
+    end
+
+
+    alumno = Alumno1("Roberto", Termino1(9))
+    valor = case alumno
+              when Alumno1( "Jose", Termino1(9) )
+                true
+            end
+
+
+
+    expect(valor).to eq(nil)
+  end
+  it 'test pattern matching case_cases matchea ' do
+    case_class Alumno2 do
+
+      attr_accessor :nombre, :termino
+
+
+    end
+
+    case_class Termino2 do
+
+      attr_accessor :nota
+
+    end
+
+
+    alumno = Alumno2("Roberto", Termino2(9))
+    valor = case alumno
+              when Alumno2( "Roberto", Termino2(9) )
+                true
+            end
+
+
+
+    expect(valor).to eq(true)
+  end
+  it 'test pattern matching case_cases falla atributos distintos ' do
+    case_class Alumno3 do
+
+      attr_accessor :nombre, :termino
+
+
+    end
+
+    case_class Termino3 do
+
+      attr_accessor :nota
+
+    end
+
+    case_object Cursando do
+
+
+    end
+
+
+    alumno = Alumno3("Roberto", Termino3(9))
+    valor = case alumno
+              when Alumno3( "Roberto", Cursando )
+                true
+            end
+
+
+
+    expect(valor).to eq(nil)
+  end
+
+
+end
