@@ -206,7 +206,7 @@ module Inmutabilidad
 
 
       def self.inherited(subclass)
-        raise "Herencia no permitida"
+        raise RuntimeError.new("Herencia no permitida")
       end
 
       def copy(*args)
