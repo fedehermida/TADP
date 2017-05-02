@@ -138,7 +138,7 @@ module Inmutabilidad
       def initialize(*args)
         if(args.size == self.class.instance_variables.size)
           self.class.instance_variables.each_with_index do |valor, indice|
-            instance_variable_set("#{valor.to_s}",args.flatten.at(indice))
+            instance_variable_set("#{valor.to_s}",args.at(indice))
           end
         else
           raise "wrong number of arguments (given #{args.size.to_s}, expected #{self.class.instance_variables.size})"
@@ -174,7 +174,8 @@ module Inmutabilidad
 
 
       def to_s
-        "#{self.class.name}(#{self.obtener_array_atributos.join(", ")})"
+        atributosString = self.obtener_array_atributos.map{|var| var.to_s}
+        "#{self.class.name}(#{atributosString.join(", ")})"
       end
 
       def ==(objeto)
@@ -194,6 +195,9 @@ module Inmutabilidad
       end
 
       def method_missing(symbol,*args)
+
+
+
 
         raise "Error! El metodo #{symbol.to_s} no esta definido!"
 
@@ -262,10 +266,25 @@ module Inmutabilidad
       objeto
     end
 
+    objeto.singleton_class.class_eval do
+
+      def ===(arg)
+
+        if(self.class == arg.class)
+
+         return self.to_s == arg.to_s
+        else
+          return false
+         end
+
+
+    end
+  end
+
 
     objeto.singleton_class.send (define_method :to_s do
 
-      name
+      name.to_s
 
     end)
 
@@ -295,18 +314,6 @@ include Inmutabilidad
 include Pattern_Matching
 
 
-case_class Guerrero7 do
-  attr_accessor :ataque, :defensa
-end
 
 
-jorge=Guerrero7(40,50)
 
-puts jorge.class
-
-valor = case jorge
-          when is_a(Guerrero7)
-            true
-        end
-
-puts valor
