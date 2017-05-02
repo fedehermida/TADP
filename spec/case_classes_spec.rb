@@ -1,6 +1,11 @@
 require_relative 'C:\Users\Cabeza de Tacho\Desktop\tadp-2017c1-grupo1-master\src\case_classes'
 require 'rspec'
 require "spec_helper"
+case_object X do
+
+
+
+end
 
 
 describe 'test de case_classes' do
@@ -64,20 +69,15 @@ describe 'test de case_classes' do
   end
 
   it 'test creacion de case_object'do
-    case_object Objeto_inmutable do
 
-    end
 
-    expect(Objeto_inmutable.class).to eq(Object)
+    expect(X.class).to eq(Object)
 
   end
 
   it 'test case_object is frozen'do
-    case_object Objeto_inmutable2 do
 
-    end
-
-    expect(Objeto_inmutable2.frozen?).to eq(true)
+    expect(X.frozen?).to eq(true)
   end
 
   it 'test case_class is frozen instances' do
@@ -92,13 +92,17 @@ describe 'test de case_classes' do
 
 
   it 'test case_class con herencia ilegal' do
-    case_class  Guerrero4 do
+    case_class Milicia do
+
+
     end
 
-    lambda=proc{case_class Milicia < Guerrero4 }
+    expect{
+      class Guerrero4 < Milicia
 
+      end
 
-    expect(lambda.call).to raise_error(RuntimeError)
+      }.to raise_exception("Herencia no permitida")
   end
 
   it 'test case_class puede ser extension de una clase' do
@@ -115,10 +119,13 @@ describe 'test de case_classes' do
       attr_accessor :ataque, :defensa
     end
     jorge=Guerrero6(40,50)
-    julio=jorge.copy ->(fuerza){fuerza+30}
 
 
-    expect(julio.fuerza).to raise_error(NoMethodError)
+
+    expect{
+      julio=jorge.copy ->(fuerza){fuerza+30}
+
+      julio.fuerza}.to raise_error("Error! El metodo fuerza no esta definido!")
   end
 
   it 'test modificar la instacia de una case class,error no se puede estan frizadas' do
@@ -127,7 +134,7 @@ describe 'test de case_classes' do
     end
     jorge=Guerrero7(40,50)
 
-    expect(jorge.defensa=30).to raise_error(NoMethodError)
+    expect{jorge.defensa=30}.to raise_error("Error! El metodo defensa= no esta definido!")
 
   end
 
@@ -337,15 +344,12 @@ describe 'test de case_classes' do
 
     end
 
-    case_object Cursando do
 
-
-    end
 
 
     alumno = Alumno3("Roberto", Termino3(9))
     valor = case alumno
-              when Alumno3( "Roberto", Cursando )
+              when Alumno3( "Roberto", X )
                 true
             end
 
