@@ -1,6 +1,5 @@
-require_relative 'C:\Users\Cabeza de Tacho\Desktop\tadp-2017c1-grupo1-master\src\case_classes'
+require_relative '../src/case_classes'
 require 'rspec'
-require "spec_helper"
 case_object X do
 
 
@@ -148,7 +147,7 @@ describe 'test de case_classes' do
 
 
 
-    valor.should == true
+    expect(valor).to eq(true)
 
   end
 
