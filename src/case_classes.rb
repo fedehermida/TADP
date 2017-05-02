@@ -212,7 +212,18 @@ module Inmutabilidad
       def copy(*args)
         copia=self.dup
         lambdas=args.flatten
+        lista_de_atributos=self.instance_variables.map{|attr| attr.to_s.delete("@")}
         lista_parametros= lambdas.map{|lambda|lambda.parameters.last.last}
+        lista_parametros_string=lista_parametros.map{|parametro| parametro.to_s}
+        if lista_parametros_string.map{|param| lista_de_atributos.include?(param)}.any?{|cond| cond==false}
+          atributoFaltante=((lista_de_atributos+(lista_parametros_string)).uniq-lista_de_atributos).first
+          raise "Error no existe el atributo #{atributoFaltante}"
+          return
+        end
+
+
+
+
         lista_zipeada=lambdas.zip(lista_parametros)
         lista_zipeada.map{|unAttr| x=(unAttr.first)
         copia.instance_variable_set("@#{unAttr.last}",x.call(copia.send(unAttr.last)))}
@@ -315,5 +326,11 @@ include Pattern_Matching
 
 
 
+case_class Guerrero do
+  attr_accessor :ataque, :defensa
+end
 
+jorge=Guerrero(40,50)
+
+julio=jorge.copy ->(fuerza){30}, ->(defensa){30}
 
