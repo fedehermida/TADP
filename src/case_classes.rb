@@ -1,10 +1,10 @@
 class Selector
 
-  attr_accessor :clases
+  attr_accessor :clase, :superclase
 
   def initialize(unaClase)
 
-    @clases = [unaClase]
+    @clase = unaClase
     return self
 
   end
@@ -12,7 +12,7 @@ class Selector
 
   def <(unaClase)
 
-    @clases = @clases + [unaClase]
+    @superclase =unaClase
     return self
 
   end
@@ -109,12 +109,12 @@ module Inmutabilidad
 
   def case_class name, &block
 
-    if name.clases.length > 1
-      clazz = Class.new(name.clases[1])
-      name = name.clases[0]
+    if !(name.superclase.nil?)
+      clazz = Class.new(name.superclase)
+      name = name.clase
     else
       clazz = Class.new
-      name = name.clases[0]
+      name = name.clase
     end
     Object.const_set name, clazz
 
@@ -243,12 +243,12 @@ module Inmutabilidad
 
   def case_object name, &block
 
-    if name.clases.length > 1
+    if !(name.superclase.nil?)
 
       raise "Los Case Objects no pueden heredar"
     else
 
-      name = name.clases[0]
+      name = name.clase
 
     end
 
