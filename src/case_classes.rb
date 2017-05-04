@@ -44,12 +44,10 @@ module Pattern_Matching
 
     def === unaClase
 
-      if unaClase.is_a?(self.clase)
-        return true
-      else
-        return false
+      return unaClase.is_a?(self.clase)
 
-      end
+
+
 
     end
 
@@ -80,18 +78,7 @@ module Pattern_Matching
 
       if objeto.array_atributos.include?(atributo.to_s)
         atributoArroba = ("@"+atributo.to_s).to_sym
-        if objeto.instance_variable_get(atributoArroba) == self.valor
-          puts "El patron matchea"
-          true
-
-        else
-          puts "El patron falla: el #{atributo} no es #{valor}"
-          false
-
-        end
-      else
-        puts "El patron falla: no hay atributo #{atributo}"
-        false
+        return objeto.instance_variable_get(atributoArroba) == self.valor
       end
 
     end
@@ -145,52 +132,48 @@ module Inmutabilidad
         end
       end
 
-      def obtener_array_atributos
+      def obtener_array_valores_de_atributos
         instance_variables.map{|ivar| instance_variable_get ivar}
       end
 
       def array_atributos
-        temp = instance_variables.map{|ivar| ivar.to_s.delete("@")}
-        temp
+        instance_variables.map{|ivar| ivar.to_s.delete("@")}
+
       end
 
 
       def === (otroCaseClass)
-        atributosPropios = otroCaseClass.obtener_array_atributos
-        atributosOtros = self.obtener_array_atributos
+        atributosPropios = otroCaseClass.obtener_array_valores_de_atributos
+        atributosOtros = self.obtener_array_valores_de_atributos
 
         listaZip = atributosOtros.zip atributosPropios
 
-        booleanos = listaZip.map { |a| a.first === a.last }
-        if (booleanos.any? {|a| a == false})
+        listaZip.all? { |a| a.first === a.last }
 
-          return false
-        else
-          return true
-        end
+
 
       end
 
 
 
       def to_s
-        atributosString = self.obtener_array_atributos.map{|var| var.to_s}
+        atributosString = self.obtener_array_valores_de_atributos.map{|var| var.to_s}
         "#{self.class.name}(#{atributosString.join(", ")})"
       end
 
       def ==(objeto)
         super
-        atributosPropios = self.obtener_array_atributos
-        atributosObjetos = objeto.obtener_array_atributos
+        atributosPropios = self.obtener_array_valores_de_atributos
+        atributosObjetos = objeto.obtener_array_valores_de_atributos
 
         self.class == objeto.class && atributosPropios == atributosObjetos
 
       end
 
       def hash
-        listaHash = self.obtener_array_atributos.map {|var| var.hash}
+        lista_hash = self.obtener_array_valores_de_atributos.map {|var| var.hash}
         sum = 7
-        sumarListaHash = listaHash.each { |a| sum+=a }
+        sumar_lista_hash = lista_hash.each { |a| sum+=a }
         sum
       end
 
@@ -210,21 +193,21 @@ module Inmutabilidad
       end
 
       def copy(*args)
-        copia=self.dup
-        lambdas=args.flatten
+
+
         lista_de_atributos=self.instance_variables.map{|attr| attr.to_s.delete("@")}
-        lista_parametros= lambdas.map{|lambda|lambda.parameters.last.last}
+        lista_parametros= args.flatten.map{|lambda|lambda.parameters.last.last}
         lista_parametros_string=lista_parametros.map{|parametro| parametro.to_s}
         if lista_parametros_string.map{|param| lista_de_atributos.include?(param)}.any?{|cond| cond==false}
           atributoFaltante=((lista_de_atributos+(lista_parametros_string)).uniq-lista_de_atributos).first
           raise "Error no existe el atributo #{atributoFaltante}"
-          return
+
         end
 
+        copia=self.dup
 
 
-
-        lista_zipeada=lambdas.zip(lista_parametros)
+        lista_zipeada=args.flatten.zip(lista_parametros)
         lista_zipeada.map{|unAttr| x=(unAttr.first)
         copia.instance_variable_set("@#{unAttr.last}",x.call(copia.send(unAttr.last)))}
         copia.freeze
@@ -330,11 +313,8 @@ include Pattern_Matching
 
 
 
-case_class Guerrero do
-  attr_accessor :ataque, :defensa
-end
 
-jorge=Guerrero(40,50)
 
-julio=jorge.copy ->(fuerza){30}, ->(defensa){30}
+
+
 

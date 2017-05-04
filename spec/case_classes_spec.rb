@@ -124,7 +124,7 @@ describe 'test de case_classes' do
     expect{
       julio=jorge.copy ->(fuerza){fuerza+30}
 
-      julio.fuerza}.to raise_error("Error! El metodo fuerza no esta definido!")
+      julio.fuerza}.to raise_error(RuntimeError)
   end
 
   it 'test modificar la instacia de una case class,error no se puede estan frizadas' do
