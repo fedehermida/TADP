@@ -273,6 +273,10 @@ module Inmutabilidad
     Object.const_set name, objeto
     objeto.instance_eval(&block)
 
+    if(objeto.instance_variables.size > 0)
+      raise "Los Case Objects no pueden tener atributos"
+    end
+
     define_singleton_method objeto.to_s.to_sym do
       objeto
     end
