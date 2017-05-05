@@ -133,7 +133,7 @@ describe 'test de case_classes' do
     end
     jorge=Guerrero7(40,50)
 
-    expect{jorge.defensa=30}.to raise_error("Error! El metodo defensa= no esta definido!")
+    expect{jorge.defensa=30}.to raise_error(NoMethodError)
 
   end
 
@@ -357,5 +357,22 @@ describe 'test de case_classes' do
     expect(valor).to eq(nil)
   end
 
+  it 'test pattern matching case_cases matchea con patrones _ y has' do
+    case_class Alumno4 do
+      attr_accessor :nombre, :termino
+    end
+
+    case_class Termino4 do
+      attr_accessor :nota
+    end
+
+    alumno = Alumno4("Roberto", Termino4(8))
+    valor = case alumno
+              when Alumno4(_, has(:nota, 8))
+                true
+            end
+
+    expect(valor).to be(true)
+  end
 
 end
