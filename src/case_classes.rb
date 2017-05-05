@@ -117,56 +117,31 @@ module Inmutabilidad
         copia.freeze
       end
     end
+
     clazz.define_singleton_method :attr_accessor do
-    |*args|
+      |*args|
       args.each do |argumento|
-        define_method argumento do
+          define_method argumento do
           instance_variable_get "@#{argumento.to_s}"
-        end
+                                  end
         clazz.send(:instance_variable_set, "@#{argumento.to_s}".to_sym, 0)
-      end
+                end
     end
+
     clazz.class_eval &block
+
     clazz.freeze
+
     define_singleton_method clazz.to_s.to_sym do
-    |*args|
+      |*args|
       instancia = clazz.new(*args)
       instancia.freeze
     end
+
+    Object.const_get instanciaSelector
+
   end
 
-  def case_object instanciaSelector, &block
-    if !(instanciaSelector.superclase.nil?)
-      raise "Los Case Objects no pueden heredar"
-    else
-      instanciaSelector = instanciaSelector.clase
-    end
-    objeto = Object.new
-    Object.const_set instanciaSelector, objeto
-    objeto.instance_eval(&block)
-    if(objeto.instance_variables.size > 0)
-      raise "Los Case Objects no pueden tener atributos"
-    end
-    define_singleton_method objeto.to_s.to_sym do
-      objeto
-    end
-    objeto.singleton_class.class_eval do
-      def ===(arg)
-        if(self.class == arg.class)
-         return self.to_s == arg.to_s
-        else
-          return false
-         end
-    end
-  end
-    objeto.singleton_class.send (define_method :to_s do
-      instanciaSelector.to_s
-    end)
-    objeto.singleton_class.send (define_method :copy do
-      objeto.clone
-    end)
-    objeto.freeze
-  end
 
   class ::Object
     def self.const_missing const
@@ -174,15 +149,56 @@ module Inmutabilidad
     end
   end
 
+
+
+
+def case_object instanciaSelector, &block
+  if !(instanciaSelector.superclase.nil?)
+    raise "Los Case Objects no pueden heredar"
+  else
+    instanciaSelectorClase = instanciaSelector.clase
+  end
+
+  funciones_case_object = proc do
+    def ===(arg)
+      if(self.class == arg.class)
+        return self.to_s == arg.to_s
+      end
+    end
+
+    def hash
+      raise "Case_objects no tienen hash"
+    end
+
+    def copy
+      self.clone
+    end
+
+    def to_s
+      super.to_s
+    end
+  end
+
+  class_case_object = case_class instanciaSelector do
+    self.instance_eval &funciones_case_object
+    self.instance_eval &block
+    self.instance_eval do
+                       undef :hash
+                       undef :attr_accessor
+                      end
+  end
+
+  if(class_case_object.instance_variables.size > 0)
+    raise "Los Case Objects no pueden tener atributos"
+  end
+
+  class_case_object
+
+end
+
 end
 
 include Inmutabilidad
 include Pattern_Matching
-
-
-
-
-
-
 
 
