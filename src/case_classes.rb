@@ -53,6 +53,85 @@ end
 
 module Inmutabilidad
 
+ module Methods
+
+   def self.included base
+     base.send :include, InstanceMethods
+     base.extend ClassMethods
+   end
+
+
+   module ClassMethods
+
+    def inherited(subclass)
+      raise RuntimeError.new("Herencia no permitida")
+    end
+
+
+
+  end
+
+  module InstanceMethods
+
+    def initialize(*args)
+      if(args.size == self.class.instance_variables.size)
+        self.class.instance_variables.each_with_index do |valor, indice|
+          instance_variable_set("#{valor.to_s}",args.at(indice))
+        end
+      else
+        raise "wrong number of arguments (given #{args.size.to_s}, expected #{self.class.instance_variables.size})"
+      end
+    end
+    def obtener_array_valores_de_atributos
+      instance_variables.map{|ivar| instance_variable_get ivar}
+    end
+    def array_atributos
+      instance_variables.map{|ivar| ivar.to_s.delete("@")}
+    end
+    def === (otroCaseClass)
+      atributosPropios = otroCaseClass.obtener_array_valores_de_atributos
+      atributosOtros = self.obtener_array_valores_de_atributos
+      listaZip = atributosOtros.zip atributosPropios
+      listaZip.all? { |a| a.first === a.last }
+    end
+    def to_s
+      atributosString = self.obtener_array_valores_de_atributos.map{|var| var.to_s}
+      "#{self.class.name}(#{atributosString.join(", ")})"
+    end
+    def ==(objeto)
+      super
+      atributosPropios = self.obtener_array_valores_de_atributos
+      atributosObjetos = objeto.obtener_array_valores_de_atributos
+      self.class == objeto.class && atributosPropios == atributosObjetos
+    end
+    def hash
+      lista_hash = self.obtener_array_valores_de_atributos.map {|var| var.hash}
+      sum = 7
+      sumar_lista_hash = lista_hash.each { |a| sum+=a }
+      sum
+    end
+
+    def copy(*args)
+      lista_de_atributos=self.instance_variables.map{|attr| attr.to_s.delete("@")}
+      lista_parametros= args.flatten.map{|lambda|lambda.parameters.last.last}
+      lista_parametros_string=lista_parametros.map{|parametro| parametro.to_s}
+      if lista_parametros_string.map{|param| lista_de_atributos.include?(param)}.any?{|cond| cond==false}
+        atributoFaltante=((lista_de_atributos+(lista_parametros_string)).uniq-lista_de_atributos).first
+        raise "Error no existe el atributo #{atributoFaltante}"
+      end
+      copia=self.dup
+      lista_zipeada=args.flatten.zip(lista_parametros)
+      lista_zipeada.map{|unAttr| x=(unAttr.first)
+      copia.instance_variable_set("@#{unAttr.last}",x.call(copia.send(unAttr.last)))}
+      copia.freeze
+    end
+
+
+
+  end
+ end
+
+
   def caseTemplate(arg)
 
     #si lo que llega es nil lo toma como false, si llega algo distinto es superclase
@@ -62,64 +141,7 @@ module Inmutabilidad
       clazz = Class.new
     end
 
-    clazz.class_eval do
-      def initialize(*args)
-        if(args.size == self.class.instance_variables.size)
-          self.class.instance_variables.each_with_index do |valor, indice|
-            instance_variable_set("#{valor.to_s}",args.at(indice))
-          end
-        else
-          raise "wrong number of arguments (given #{args.size.to_s}, expected #{self.class.instance_variables.size})"
-        end
-      end
-      def obtener_array_valores_de_atributos
-        instance_variables.map{|ivar| instance_variable_get ivar}
-      end
-      def array_atributos
-        instance_variables.map{|ivar| ivar.to_s.delete("@")}
-      end
-      def === (otroCaseClass)
-        atributosPropios = otroCaseClass.obtener_array_valores_de_atributos
-        atributosOtros = self.obtener_array_valores_de_atributos
-        listaZip = atributosOtros.zip atributosPropios
-        listaZip.all? { |a| a.first === a.last }
-      end
-      def to_s
-        atributosString = self.obtener_array_valores_de_atributos.map{|var| var.to_s}
-        "#{self.class.name}(#{atributosString.join(", ")})"
-      end
-      def ==(objeto)
-        super
-        atributosPropios = self.obtener_array_valores_de_atributos
-        atributosObjetos = objeto.obtener_array_valores_de_atributos
-        self.class == objeto.class && atributosPropios == atributosObjetos
-      end
-      def hash
-        lista_hash = self.obtener_array_valores_de_atributos.map {|var| var.hash}
-        sum = 7
-        sumar_lista_hash = lista_hash.each { |a| sum+=a }
-        sum
-      end
-      def self.inherited(subclass)
-        raise RuntimeError.new("Herencia no permitida")
-      end
-      def copy(*args)
-        lista_de_atributos=self.instance_variables.map{|attr| attr.to_s.delete("@")}
-        lista_parametros= args.flatten.map{|lambda|lambda.parameters.last.last}
-        lista_parametros_string=lista_parametros.map{|parametro| parametro.to_s}
-        if lista_parametros_string.map{|param| lista_de_atributos.include?(param)}.any?{|cond| cond==false}
-          atributoFaltante=((lista_de_atributos+(lista_parametros_string)).uniq-lista_de_atributos).first
-          raise "Error no existe el atributo #{atributoFaltante}"
-        end
-        copia=self.dup
-        lista_zipeada=args.flatten.zip(lista_parametros)
-        lista_zipeada.map{|unAttr| x=(unAttr.first)
-        copia.instance_variable_set("@#{unAttr.last}",x.call(copia.send(unAttr.last)))}
-        copia.freeze
-      end
-
-
-    end
+    clazz.include(Methods)
 
     clazz.define_singleton_method :attr_accessor do
     |*args|
@@ -229,5 +251,3 @@ end
 
 include Inmutabilidad
 include Pattern_Matching
-
-
