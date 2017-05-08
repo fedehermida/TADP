@@ -1,7 +1,15 @@
 require_relative '../src/case_classes'
 require 'rspec'
+
 case_object X do
 
+  def prueba
+    "hello world"
+  end
+
+  def self.prueba1
+    "Satisfactorio"
+  end
 
 
 end
@@ -67,10 +75,55 @@ describe 'test de case_classes' do
     expect(julio.ataque).to eq(60)
   end
 
+  it 'test case_class define metodos de clase correctamente' do
+    case_class Fighter1 do
+      attr_accessor :ataque, :defensa
+      def hola1
+        "hola"
+      end
+
+    end
+    jorge=Fighter1(40,50)
+
+    expect(jorge.hola1).to eq("hola")
+
+  end
+
+  it 'test case_class define singleton methods correctamente' do
+    case_class Fighter2 do
+      attr_accessor :ataque, :defensa
+      def hola1
+        "hola"
+      end
+
+      def self.hola2
+        "como estas"
+      end
+
+    end
+
+    expect(Fighter2.hola2).to eq("como estas")
+
+  end
+
+  it 'test instancia de case_class no encuentra metodo de la singleton class' do
+    case_class Fighter3 do
+      attr_accessor :ataque, :defensa
+      def self.hola1
+        "hola"
+      end
+
+    end
+    jorge=Fighter3(40,50)
+
+    expect{ jorge.hola1}.to raise_error(NoMethodError)
+
+  end
+
   it 'test creacion de case_object'do
 
 
-    expect(X.class).to eq(Object)
+    expect(X.is_a?(Object)).to eq(true)
 
   end
 
@@ -78,6 +131,27 @@ describe 'test de case_classes' do
 
     expect(X.frozen?).to eq(true)
   end
+
+  it 'test case_object define metodos de instancia correctamente'do
+
+    expect(X.prueba).to eq("hello world")
+  end
+
+  it 'test case_object define auto-metodos correctamente'do
+
+    expect(X.prueba1).to eq("Satisfactorio")
+  end
+
+  it 'test case_object intenta setear atributos'do
+
+    expect{ case_object Y do attr_accessor :propiedad end }.to raise_error(NoMethodError)
+  end
+
+  it 'test case_object no tienen hash'do
+
+    expect{ X.hash }.to raise_error(NoMethodError)
+  end
+
 
   it 'test case_class is frozen instances' do
     case_class Guerrero3 do
@@ -127,13 +201,29 @@ describe 'test de case_classes' do
       julio.fuerza}.to raise_error(RuntimeError)
   end
 
-  it 'test modificar la instacia de una case class,error no se puede estan frizadas' do
+  it 'test modificar la instacia de una case class, desde un setter' do
     case_class Guerrero7 do
       attr_accessor :ataque, :defensa
     end
     jorge=Guerrero7(40,50)
 
     expect{jorge.defensa=30}.to raise_error(NoMethodError)
+
+  end
+
+  it 'test modificar la instacia de una case class, desde un metodo' do
+    case_class Fighter8 do
+      attr_accessor :ataque, :defensa
+
+      def hacerTrampa
+        @ataque = 1000000
+      end
+
+
+    end
+    jorge=Fighter8(40,50)
+
+    expect{jorge.hacerTrampa}.to raise_error(RuntimeError)
 
   end
 
@@ -357,22 +447,5 @@ describe 'test de case_classes' do
     expect(valor).to eq(nil)
   end
 
-  it 'test pattern matching case_cases matchea con patrones _ y has' do
-    case_class Alumno4 do
-      attr_accessor :nombre, :termino
-    end
-
-    case_class Termino4 do
-      attr_accessor :nota
-    end
-
-    alumno = Alumno4("Roberto", Termino4(8))
-    valor = case alumno
-              when Alumno4(_, has(:nota, 8))
-                true
-            end
-
-    expect(valor).to be(true)
-  end
 
 end
