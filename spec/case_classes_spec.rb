@@ -50,7 +50,7 @@ describe 'test de case_classes' do
     jorge=Guerrero1(40,50)
     julio=Guerrero1(40,50)
 
-    expect(jorge==julio).to eq(true)
+    expect(jorge==julio).to eq(true) # TODO: reemplacenlo con expect(jorge).to eq(julio). to eq() usa ==
   end
 
   it 'test copy sin lambdas'do
@@ -60,7 +60,7 @@ describe 'test de case_classes' do
     jorge=Guerrero2(40,50)
     julio=jorge.copy
 
-    expect(jorge==julio).to eq(true)
+    expect(jorge==julio).to eq(true) # TODO: lo mismo que el anterior
   end
 
 
@@ -71,11 +71,11 @@ describe 'test de case_classes' do
     jorge=Guerrero8(40,50)
     julio=jorge.copy ->(defensa){defensa+30},->(ataque){ataque+20}
 
-    expect(julio.defensa).to eq(80)
+    expect(julio.defensa).to eq(80) # TODO: esta línea y la siguiente la pueden reemplazar con expect(julio).to eq(Guerrero8(60,80))
     expect(julio.ataque).to eq(60)
   end
 
-  it 'test case_class define metodos de clase correctamente' do
+  it 'test case_class define metodos de clase correctamente' do # TODO: hola1 no es un método de clase
     case_class Fighter1 do
       attr_accessor :ataque, :defensa
       def hola1
@@ -149,7 +149,7 @@ describe 'test de case_classes' do
 
   it 'test case_object no tienen hash'do
 
-    expect{ X.hash }.to raise_error(NoMethodError)
+    expect{ X.hash }.to raise_error(NoMethodError) # TODO: expect(X.hash).to eq('X'.hash)
   end
 
 
@@ -184,7 +184,7 @@ describe 'test de case_classes' do
     end
 
     expect(Guerrero5.class).to eq(Class)
-
+    # TODO: expect(Guerrero5 < Fixnum).to eq(true)
   end
 
   it 'test copy con lambdas, error en los nombres de los parametros distintos a los de los atributos'do

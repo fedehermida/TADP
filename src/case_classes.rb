@@ -2,7 +2,7 @@ class Selector
   attr_accessor :clase, :superclase
   def initialize(unaClase)
     @clase = unaClase
-    return self
+    return self # TODO: No hace falta retornar self
   end
   def <(unaClase)
     @superclase =unaClase
@@ -53,10 +53,10 @@ end
 
 module Inmutabilidad
 
-  module Methods_Case_Class_Template
+  module Methods_Case_Class_Template # TODO: Saquen este module de Inmutabilidad. Nombre en camel case: MethodsCaseClassTemplate. Queda más lindo si se llama CaseClass.
 
 
-    module Class_Methods_Case_Class_Template
+    module Class_Methods_Case_Class_Template # TODO: camel case
       def inherited(subclass)
         raise RuntimeError.new("Herencia no permitida")
       end
@@ -72,7 +72,7 @@ module Inmutabilidad
     end
 
 
-    module Instance_Methods_Case_Class_Template
+    module Instance_Methods_Case_Class_Template # TODO: camel case
       def initialize(*args)
         if(args.size == self.class.instance_variables.size)
           self.class.instance_variables.each_with_index do |valor, indice|
@@ -186,17 +186,17 @@ module Inmutabilidad
 
 
   def case_object instanciaSelector, &block
-    if !(instanciaSelector.superclase.nil?)
+    if !(instanciaSelector.superclase.nil?) # TODO: esta validación está mal. Los case_objects si pueden heredar.
       raise "Los Case Objects no pueden heredar"
     else
       nombre_case_object = instanciaSelector.clase
     end
 
-    case_clase_auxiliar = case_template(nil)
+    case_clase_auxiliar = case_template(nil) # TODO: pasarle instanciaSelector.superclase
 
     nombre_case_class_auxiliar = "#{nombre_case_object.to_s}_case_template"
 
-    Object.const_set nombre_case_class_auxiliar, case_clase_auxiliar
+    Object.const_set nombre_case_class_auxiliar, case_clase_auxiliar # TODO: No hace falta setear una constante
 
     funciones_case_object = proc do
 
@@ -217,7 +217,7 @@ module Inmutabilidad
     end
 
     case_clase_auxiliar.class_eval &funciones_case_object
-    case_clase_auxiliar.class_eval { undef :hash }
+    case_clase_auxiliar.class_eval { undef :hash } # TODO: está mal. Sobreescriban el hash como el hash del nombre del case object
     case_clase_auxiliar.singleton_class.class_eval {undef :attr_accessor}
 
     case_objeto = case_clase_auxiliar.new
