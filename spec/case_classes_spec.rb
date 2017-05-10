@@ -43,6 +43,7 @@ describe 'test de case_classes' do
 
     expect(jorge.to_s).to eq("Guerrillero(40, 50)")
   end
+
   it 'test buenos default: ==' do
     case_class Guerrero1 do
       attr_accessor :ataque, :defensa
@@ -50,7 +51,7 @@ describe 'test de case_classes' do
     jorge=Guerrero1(40,50)
     julio=Guerrero1(40,50)
 
-    expect(jorge==julio).to eq(true)
+    expect(jorge).to eq(julio)
   end
 
   it 'test copy sin lambdas'do
@@ -60,7 +61,7 @@ describe 'test de case_classes' do
     jorge=Guerrero2(40,50)
     julio=jorge.copy
 
-    expect(jorge==julio).to eq(true)
+    expect(jorge).to eq(julio)
   end
 
 
@@ -71,21 +72,18 @@ describe 'test de case_classes' do
     jorge=Guerrero8(40,50)
     julio=jorge.copy ->(defensa){defensa+30},->(ataque){ataque+20}
 
-    expect(julio.defensa).to eq(80)
-    expect(julio.ataque).to eq(60)
+    expect(julio).to eq(Guerrero8(60,80))
   end
 
   it 'test case_class define metodos de clase correctamente' do
     case_class Fighter1 do
       attr_accessor :ataque, :defensa
-      def hola1
+      def self.hola1
         "hola"
       end
-
     end
-    jorge=Fighter1(40,50)
 
-    expect(jorge.hola1).to eq("hola")
+    expect(Fighter1.hola1).to eq("hola")
 
   end
 
@@ -112,8 +110,8 @@ describe 'test de case_classes' do
       def self.hola1
         "hola"
       end
-
     end
+
     jorge=Fighter3(40,50)
 
     expect{ jorge.hola1}.to raise_error(NoMethodError)
@@ -121,35 +119,27 @@ describe 'test de case_classes' do
   end
 
   it 'test creacion de case_object'do
-
-
     expect(X.is_a?(Object)).to eq(true)
-
   end
 
   it 'test case_object is frozen'do
-
     expect(X.frozen?).to eq(true)
   end
 
   it 'test case_object define metodos de instancia correctamente'do
-
     expect(X.prueba).to eq("hello world")
   end
 
   it 'test case_object define auto-metodos correctamente'do
-
     expect(X.prueba1).to eq("Satisfactorio")
   end
 
   it 'test case_object intenta setear atributos'do
-
     expect{ case_object Y do attr_accessor :propiedad end }.to raise_error(NoMethodError)
   end
 
-  it 'test case_object no tienen hash'do
-
-    expect{ X.hash }.to raise_error(NoMethodError)
+  it 'test case_object hash'do
+    expect(X.hash).to eq('X'.hash)
   end
 
 
@@ -166,8 +156,6 @@ describe 'test de case_classes' do
 
   it 'test case_class con herencia ilegal' do
     case_class Milicia do
-
-
     end
 
     expect{
@@ -183,7 +171,7 @@ describe 'test de case_classes' do
 
     end
 
-    expect(Guerrero5.class).to eq(Class)
+    expect(Guerrero5 < Fixnum).to eq(true)
 
   end
 
@@ -192,8 +180,6 @@ describe 'test de case_classes' do
       attr_accessor :ataque, :defensa
     end
     jorge=Guerrero6(40,50)
-
-
 
     expect{
       julio=jorge.copy ->(fuerza){fuerza+30}
@@ -218,15 +204,13 @@ describe 'test de case_classes' do
       def hacerTrampa
         @ataque = 1000000
       end
-
-
     end
+
     jorge=Fighter8(40,50)
 
     expect{jorge.hacerTrampa}.to raise_error(RuntimeError)
 
   end
-
 
   it 'test pattern matching _ siempre es true' do
     objeto = Object.new
@@ -234,8 +218,6 @@ describe 'test de case_classes' do
               when _
                 true
             end
-
-
 
     expect(valor).to eq(true)
 
@@ -246,15 +228,12 @@ describe 'test de case_classes' do
       attr_accessor :ataque, :defensa
     end
 
-
     jorge=Guerrero10(40,50)
 
     valor = case jorge
               when is_a(Guerrero10)
                 true
             end
-
-
 
     expect(valor).to eq(true)
   end
@@ -264,7 +243,6 @@ describe 'test de case_classes' do
       attr_accessor :ataque, :defensa
     end
 
-
     jorge=Guerrero11(40,50)
 
     valor = case jorge
@@ -272,15 +250,13 @@ describe 'test de case_classes' do
                 true
             end
 
-
-
     expect(valor).to eq(true)
   end
+
   it 'test pattern matching is_a no pertenece a la clase Array' do
     case_class Guerrero12 do
       attr_accessor :ataque, :defensa
     end
-
 
     jorge=Guerrero12(40,50)
 
@@ -289,15 +265,13 @@ describe 'test de case_classes' do
                 true
             end
 
-
-
     expect(valor).to eq(nil)
   end
+
   it 'test pattern matching has posee el atributo y coincide el valor' do
     case_class Guerrero13 do
       attr_accessor :ataque, :defensa
     end
-
 
     jorge=Guerrero13(40,50)
 
@@ -306,15 +280,13 @@ describe 'test de case_classes' do
                 true
             end
 
-
-
     expect(valor).to eq(true)
   end
+
   it 'test pattern matching has posee el atributo pero no coincide el valor' do
     case_class Guerrero14 do
       attr_accessor :ataque, :defensa
     end
-
 
     jorge=Guerrero14(40,50)
 
@@ -323,15 +295,13 @@ describe 'test de case_classes' do
                 true
             end
 
-
-
     expect(valor).to eq(nil)
   end
+
   it 'test pattern matching has no posee el atributo' do
     case_class Guerrero15 do
       attr_accessor :ataque, :defensa
     end
-
 
     jorge=Guerrero15(40,50)
 
@@ -340,24 +310,17 @@ describe 'test de case_classes' do
                 true
             end
 
-
-
     expect(valor).to eq(nil)
   end
+
   it 'test pattern matching case_cases no coincide la nota' do
     case_class Alumno do
-
       attr_accessor :nombre, :termino
-
-
     end
 
     case_class Termino do
-
       attr_accessor :nota
-
     end
-
 
     alumno = Alumno("Jose", Termino(9))
     valor = case alumno
@@ -365,22 +328,16 @@ describe 'test de case_classes' do
                 true
             end
 
-
-
     expect(valor).to eq(nil)
   end
+
   it 'test pattern matching case_cases no coincide el nombre ' do
     case_class Alumno1 do
-
       attr_accessor :nombre, :termino
-
-
     end
 
     case_class Termino1 do
-
       attr_accessor :nota
-
     end
 
 
@@ -390,24 +347,17 @@ describe 'test de case_classes' do
                 true
             end
 
-
-
     expect(valor).to eq(nil)
   end
+
   it 'test pattern matching case_cases matchea ' do
     case_class Alumno2 do
-
       attr_accessor :nombre, :termino
-
-
     end
 
     case_class Termino2 do
-
       attr_accessor :nota
-
     end
-
 
     alumno = Alumno2("Roberto", Termino2(9))
     valor = case alumno
@@ -415,26 +365,17 @@ describe 'test de case_classes' do
                 true
             end
 
-
-
     expect(valor).to eq(true)
   end
+
   it 'test pattern matching case_cases falla atributos distintos ' do
     case_class Alumno3 do
-
       attr_accessor :nombre, :termino
-
-
     end
 
     case_class Termino3 do
-
       attr_accessor :nota
-
     end
-
-
-
 
     alumno = Alumno3("Roberto", Termino3(9))
     valor = case alumno
@@ -442,10 +383,7 @@ describe 'test de case_classes' do
                 true
             end
 
-
-
     expect(valor).to eq(nil)
   end
-
 
 end

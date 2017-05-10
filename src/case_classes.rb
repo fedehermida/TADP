@@ -2,7 +2,6 @@ class Selector
   attr_accessor :clase, :superclase
   def initialize(unaClase)
     @clase = unaClase
-    return self
   end
   def <(unaClase)
     @superclase =unaClase
@@ -51,103 +50,108 @@ module Pattern_Matching
   end
 end
 
-module Inmutabilidad
+module CaseClass
 
-  module Methods_Case_Class_Template
+  module InstanceMethodsCaseClass
 
-
-    module Class_Methods_Case_Class_Template
-      def inherited(subclass)
-        raise RuntimeError.new("Herencia no permitida")
-      end
-
-      def attr_accessor(*args)
-        args.each do |argumento|
-          define_method argumento do
-            instance_variable_get "@#{argumento.to_s}"
-          end
-          send(:instance_variable_set, "@#{argumento.to_s}".to_sym, 0)
+    def initialize(*args)
+      if(args.size == self.class.instance_variables.size)
+        self.class.instance_variables.each_with_index do |valor, indice|
+          instance_variable_set("#{valor.to_s}",args.at(indice))
         end
+      else
+        raise "wrong number of arguments (given #{args.size.to_s}, expected #{self.class.instance_variables.size})"
       end
     end
 
-
-    module Instance_Methods_Case_Class_Template
-      def initialize(*args)
-        if(args.size == self.class.instance_variables.size)
-          self.class.instance_variables.each_with_index do |valor, indice|
-            instance_variable_set("#{valor.to_s}",args.at(indice))
-          end
-        else
-          raise "wrong number of arguments (given #{args.size.to_s}, expected #{self.class.instance_variables.size})"
-        end
-      end
-      def obtener_array_valores_de_atributos
-        instance_variables.map{|ivar| instance_variable_get ivar}
-      end
-      def array_atributos
-        instance_variables.map{|ivar| ivar.to_s.delete("@")}
-      end
-      def === (otroCaseClass)
-        atributosPropios = otroCaseClass.obtener_array_valores_de_atributos
-        atributosOtros = self.obtener_array_valores_de_atributos
-        listaZip = atributosOtros.zip atributosPropios
-        listaZip.all? { |a| a.first === a.last }
-      end
-      def to_s
-        atributosString = self.obtener_array_valores_de_atributos.map{|var| var.to_s}
-        "#{self.class.name}(#{atributosString.join(", ")})"
-      end
-      def ==(objeto)
-        super
-        atributosPropios = self.obtener_array_valores_de_atributos
-        atributosObjetos = objeto.obtener_array_valores_de_atributos
-        self.class == objeto.class && atributosPropios == atributosObjetos
-      end
-      def hash
-        lista_hash = self.obtener_array_valores_de_atributos.map {|var| var.hash}
-        sum = 7
-        sumar_lista_hash = lista_hash.each { |a| sum+=a }
-        sum
-      end
-
-      def copy(*args)
-        lista_de_atributos=self.instance_variables.map{|attr| attr.to_s.delete("@")}
-        lista_parametros= args.flatten.map{|lambda|lambda.parameters.last.last}
-        lista_parametros_string=lista_parametros.map{|parametro| parametro.to_s}
-        if lista_parametros_string.map{|param| lista_de_atributos.include?(param)}.any?{|cond| cond==false}
-          atributoFaltante=((lista_de_atributos+(lista_parametros_string)).uniq-lista_de_atributos).first
-          raise "Error no existe el atributo #{atributoFaltante}"
-        end
-        copia=self.dup
-        lista_zipeada=args.flatten.zip(lista_parametros)
-        lista_zipeada.map{|unAttr| x=(unAttr.first)
-        copia.instance_variable_set("@#{unAttr.last}",x.call(copia.send(unAttr.last)))}
-        copia.freeze
-      end
-
+    def obtener_array_valores_de_atributos
+      instance_variables.map{|ivar| instance_variable_get ivar}
     end
 
-    def self.included base
-      base.send :include, Instance_Methods_Case_Class_Template
-      base.extend Class_Methods_Case_Class_Template
+    def array_atributos
+      instance_variables.map{|ivar| ivar.to_s.delete("@")}
+    end
+
+    def === (otroCaseClass)
+      atributosPropios = otroCaseClass.obtener_array_valores_de_atributos
+      atributosOtros = self.obtener_array_valores_de_atributos
+      listaZip = atributosOtros.zip atributosPropios
+      listaZip.all? { |a| a.first === a.last }
+    end
+
+    def to_s
+      atributosString = self.obtener_array_valores_de_atributos.map{|var| var.to_s}
+      "#{self.class.name}(#{atributosString.join(", ")})"
+    end
+
+    def ==(objeto)
+      super
+      atributosPropios = self.obtener_array_valores_de_atributos
+      atributosObjetos = objeto.obtener_array_valores_de_atributos
+      self.class == objeto.class && atributosPropios == atributosObjetos
+    end
+
+    def hash
+      lista_hash = self.obtener_array_valores_de_atributos.map {|var| var.hash}
+      sum = 7
+      sumar_lista_hash = lista_hash.each { |a| sum+=a }
+      sum
+    end
+
+    def copy(*args)
+      lista_de_atributos=self.instance_variables.map{|attr| attr.to_s.delete("@")}
+      lista_parametros= args.flatten.map{|lambda|lambda.parameters.last.last}
+      lista_parametros_string=lista_parametros.map{|parametro| parametro.to_s}
+      if lista_parametros_string.map{|param| lista_de_atributos.include?(param)}.any?{|cond| cond==false}
+        atributoFaltante=((lista_de_atributos+(lista_parametros_string)).uniq-lista_de_atributos).first
+        raise "Error no existe el atributo #{atributoFaltante}"
+      end
+      copia=self.dup
+      lista_zipeada=args.flatten.zip(lista_parametros)
+      lista_zipeada.map{|unAttr| x=(unAttr.first)
+      copia.instance_variable_set("@#{unAttr.last}",x.call(copia.send(unAttr.last)))}
+      copia.freeze
+    end
+
+  end
+
+  module ClassMethodsCaseClass
+
+    def inherited(subclass)
+      raise RuntimeError.new("Herencia no permitida")
+    end
+
+    def attr_accessor(*args)
+      args.each do |argumento|
+        define_method argumento do
+          instance_variable_get "@#{argumento.to_s}"
+        end
+        send(:instance_variable_set, "@#{argumento.to_s}".to_sym, 0)
+      end
     end
   end
 
+  def self.included base
+    base.send :include, InstanceMethodsCaseClass
+    base.extend ClassMethodsCaseClass
+  end
 
-  def case_template(arg)
+end
 
-    #si lo que llega es nil lo toma como false, si llega algo distinto es superclase
+module Inmutabilidad
+
+
+
+  def caseTemplate(arg)
+
     if arg
       clazz = Class.new(arg)
     else
       clazz = Class.new
     end
 
-    clazz.include(Methods_Case_Class_Template)
-
+    clazz.include(CaseClass)
     clazz
-
 
   end
 
@@ -155,12 +159,11 @@ module Inmutabilidad
 
   def case_class instanciaSelector, &block
 
-    nombre_clase = instanciaSelector.clase
+    nombreClase = instanciaSelector.clase
 
-    case_clase = case_template (instanciaSelector.superclase)
+    case_clase = caseTemplate(instanciaSelector.superclase)
 
-    Object.const_set nombre_clase, case_clase
-
+    Object.const_set nombreClase, case_clase
 
     case_clase.class_eval &block
 
@@ -171,7 +174,6 @@ module Inmutabilidad
       instancia = case_clase.new(*args)
       instancia.freeze
     end
-
 
   end
 
@@ -186,17 +188,10 @@ module Inmutabilidad
 
 
   def case_object instanciaSelector, &block
-    if !(instanciaSelector.superclase.nil?)
-      raise "Los Case Objects no pueden heredar"
-    else
-      nombre_case_object = instanciaSelector.clase
-    end
 
-    case_clase_auxiliar = case_template(nil)
+    nombreCaseObject = instanciaSelector.clase
 
-    nombre_case_class_auxiliar = "#{nombre_case_object.to_s}_case_template"
-
-    Object.const_set nombre_case_class_auxiliar, case_clase_auxiliar
+    case_clase_auxiliar = caseTemplate(instanciaSelector.superclase)
 
     funciones_case_object = proc do
 
@@ -206,23 +201,26 @@ module Inmutabilidad
         end
       end
 
-      def copy
-        self.clone
+      def hash
+        to_s.hash
       end
 
-      def to_s
-        self.class.to_s.gsub("_case_template", "")
+      def copy
+        self.clone
       end
 
     end
 
     case_clase_auxiliar.class_eval &funciones_case_object
-    case_clase_auxiliar.class_eval { undef :hash }
     case_clase_auxiliar.singleton_class.class_eval {undef :attr_accessor}
 
     case_objeto = case_clase_auxiliar.new
 
-    Object.const_set nombre_case_object, case_objeto
+    case_objeto.define_singleton_method :to_s do
+      nombreCaseObject.to_s
+    end
+
+    Object.const_set nombreCaseObject, case_objeto
 
     case_objeto.instance_eval &block
 
