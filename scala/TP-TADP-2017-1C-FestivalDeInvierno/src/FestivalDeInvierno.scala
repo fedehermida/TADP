@@ -1,3 +1,5 @@
+import scala.collection.mutable
+
 /**
   * Created by TYPE Null on 9/6/2017.
   */
@@ -352,6 +354,64 @@ object FestivalDelInvierno {
       participante match {
         case Jinete(_,_)=> return 5
         case Vikingo(_,_)=>return cantidadDeKilometros
+      }
+    }
+
+  }
+
+
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////// T O R N E O ///////////////////////////////////////////////////////////////////////////////////
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+  case class Torneo(vikingos : List[Vikingo], dragones : List[Dragon], postas : List[Posta]){
+
+    def jugar() : Option[Participante] = {
+      var participantesPreparadosParaCompetirEnLaPosta : mutable.MutableList[Participante] = new mutable.MutableList[Participante]
+      var vikingosRestantes : List[Vikingo] = vikingos
+
+      for (posta <- postas) {
+        if(!vikingosRestantes.isEmpty) {
+          if(vikingosRestantes.length == 1){
+            return vikingosRestantes.headOption
+          }else{
+            var dragonesTodavíaDisponibles: List[Dragon] = dragones
+            for (vikingo <- vikingosRestantes) {
+              var participantePreparadoParaLaPosta: Participante = vikingo.participarEnMiMejorFormaEnUnaPosta(posta, dragonesTodavíaDisponibles)
+              participantesPreparadosParaCompetirEnLaPosta += participantePreparadoParaLaPosta
+              dragonesTodavíaDisponibles = this.obtenerDragon(participantePreparadoParaLaPosta) match {
+                case Some(dragon) => dragonesTodavíaDisponibles.filter(_ != dragon)
+                case None => dragonesTodavíaDisponibles
+              }
+            }
+            var participantesRestantes = posta.participarEnPosta(participantesPreparadosParaCompetirEnLaPosta.toList)
+            vikingosRestantes = this.obtenerVikingosDespuesDeLaPosta(participantesRestantes)
+          }
+        }else{
+          return None
+        }
+      }
+      return vikingosRestantes.headOption
+    }
+
+
+    def obtenerVikingosDespuesDeLaPosta(participantes : List[Participante]) : List[Vikingo] = {
+      return participantes.map(this.obtenerVikingo(_))
+    }
+
+
+    def obtenerVikingo(participante : Participante) : Vikingo = {
+      participante match{
+        case participante : Jinete => participante.unVikingo
+        case participante : Vikingo => participante
+      }
+    }
+
+
+    def obtenerDragon(participante : Participante) : Option[Dragon] = {
+      participante match{
+        case participante : Jinete => Option(participante.unDragon)
+        case participante : Vikingo => None
       }
     }
 
