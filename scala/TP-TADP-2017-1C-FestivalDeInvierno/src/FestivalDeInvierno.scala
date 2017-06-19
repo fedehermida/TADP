@@ -380,7 +380,7 @@ object FestivalDelInvierno {
               var participantePreparadoParaLaPosta: Participante = vikingo.participarEnMiMejorFormaEnUnaPosta(posta, dragonesTodavíaDisponibles)
               participantesPreparadosParaCompetirEnLaPosta += participantePreparadoParaLaPosta
               dragonesTodavíaDisponibles = this.obtenerDragon(participantePreparadoParaLaPosta) match {
-                case Some(dragon) => dragonesTodavíaDisponibles.filter(_ != dragon)
+                case Some(dragon) => this.quitarDragonMontadoDeLaLista(dragonesTodavíaDisponibles, dragon)
                 case None => dragonesTodavíaDisponibles
               }
             }
@@ -391,9 +391,14 @@ object FestivalDelInvierno {
           return None
         }
       }
+
       return vikingosRestantes.headOption
+
     }
 
+    def quitarDragonMontadoDeLaLista(unosDragones: List[Dragon], unDragon: Dragon): List[Dragon] = {
+      unosDragones diff List(unDragon)
+    }
 
     def obtenerVikingosDespuesDeLaPosta(participantes : List[Participante]) : List[Vikingo] = {
       return participantes.map(this.obtenerVikingo(_))
