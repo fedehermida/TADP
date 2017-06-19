@@ -258,7 +258,7 @@ object FestivalDelInvierno {
     def soyMejorQue(participante: Participante,otroParticipante: Participante):Boolean
 
     def puedeParticipar (participante: Participante):Boolean = {
-      participante.nivelHambre + this.cuantoHambreAumento(participante)  >= 100
+      participante.nivelHambre + this.cuantoHambreAumento(participante)  <= 100
     }
 
     def quienEsMejor(participante: Participante, otroParticipante : Participante) : Participante = {
