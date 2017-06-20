@@ -364,36 +364,24 @@ package object FestivalDelInvierno {
   //////////////////////////////////////////////////////// T O R N E O ///////////////////////////////////////////////////////////////////////////////////
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  case class Torneo(vikingos : List[Vikingo], dragones : List[Dragon], postas : List[Posta]){
+  case class Torneo(vikingos : List[Vikingo], dragones : List[Dragon], postas : List[Posta], regla : Regla){
 
     def jugar() : Option[Participante] = {
-      var participantesPreparadosParaCompetirEnLaPosta : mutable.MutableList[Participante] = new mutable.MutableList[Participante]
       var vikingosRestantes : List[Vikingo] = vikingos
 
-      for (posta <-postas) {
-        if(!vikingosRestantes.isEmpty) {
-          if(vikingosRestantes.length == 1){
-            return vikingosRestantes.headOption
-          }else{
-            var dragonesTodavíaDisponibles: List[Dragon] = dragones
-            for (vikingo <-vikingosRestantes) {
-              var participantePreparadoParaLaPosta: Participante = vikingo.participarEnMiMejorFormaEnUnaPosta(posta, dragonesTodavíaDisponibles)
-              participantesPreparadosParaCompetirEnLaPosta += participantePreparadoParaLaPosta
-              dragonesTodavíaDisponibles = this.obtenerDragon(participantePreparadoParaLaPosta) match {
-                case Some(dragon) => this.quitarDragonMontadoDeLaLista(dragonesTodavíaDisponibles, dragon)
-                case None => dragonesTodavíaDisponibles
-              }
-            }
-            var participantesRestantes = posta.participarEnPosta(participantesPreparadosParaCompetirEnLaPosta.toList)
-            vikingosRestantes = this.obtenerVikingosDespuesDeLaPosta(participantesRestantes)
-          }
-        }else{
-          return None
+      for (posta <- postas) {
+        vikingosRestantes.length match{
+          case 0 => return None
+          case 1 => return vikingosRestantes.headOption
+          case _ => vikingosRestantes = this.obtenerVikingosDespuesDeLaPosta(
+            regla.quienesPasanALaSiguienteRonda(
+              posta.participarEnPosta(regla.prepararParaLaPosta(posta,vikingos,dragones))
+            )
+          )
         }
       }
 
-      return vikingosRestantes.headOption
-
+      regla.obtenerGanador(vikingosRestantes)
     }
 
     def quitarDragonMontadoDeLaLista(unosDragones: List[Dragon], unDragon: Dragon): List[Dragon] = {
@@ -421,5 +409,95 @@ package object FestivalDelInvierno {
     }
 
   }
+
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////// R E G L A S ///////////////////////////////////////////////////////////////////////////////////
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+  trait Regla {
+    def prepararParaLaPosta(posta : Posta, vikingos : List[Vikingo], dragones : List[Dragon]) : List[Participante]
+    def quienesPasanALaSiguienteRonda(participantes: List[Participante]) : List[Participante]
+    def obtenerGanador(participantes : List[Participante]) : Option[Participante]
+  }
+
+  /////////////////////
+  // E S T A N D A R //
+  /////////////////////
+
+  case class ReglasEstandar() extends Regla{
+
+    override def prepararParaLaPosta(posta: Posta, vikingos: List[Vikingo], dragones : List[Dragon]): List[Participante] = {
+      var dragonesRestantes : List[Dragon] = dragones
+      for {
+        vikingo <- vikingos
+      } yield {
+        var participanteListo = vikingo.participarEnMiMejorFormaEnUnaPosta(posta, dragonesRestantes)
+        var dragonElegido = participanteListo match{
+          case participanteListo : Jinete => Option(participanteListo.unDragon)
+          case participanteListo : Vikingo => None
+        }
+        dragonesRestantes = dragonElegido match {
+          case Some(dragon) => dragonesRestantes diff List(dragon)
+          case None => dragonesRestantes
+        }
+        vikingo.participarEnMiMejorFormaEnUnaPosta(posta, dragonesRestantes)
+      }
+    }
+
+    override def quienesPasanALaSiguienteRonda(participantes: List[Participante]): List[Participante] = {
+      participantes.take(participantes.length / 2)
+    }
+
+    override def obtenerGanador(participantes: List[Participante]): Option[Participante] = participantes.headOption
+
+  }
+
+  ///////////////////////////////////
+  // P O R   E L I M I N A C I O N //
+  ///////////////////////////////////
+
+  case class ReglasDeEliminacion(numeroDeParticipantesEliminadosParaLaSiguienteRonda : Int) extends ReglasEstandar{
+    require(numeroDeParticipantesEliminadosParaLaSiguienteRonda>=0)
+    override def quienesPasanALaSiguienteRonda(participantes : List[Participante]) : List[Participante] = {
+      participantes.reverse.drop(numeroDeParticipantesEliminadosParaLaSiguienteRonda).reverse
+    }
+  }
+
+  /////////////////////////////////
+  // T O R N E O   I N V E R S O //
+  /////////////////////////////////
+
+  case object ReglasDeTorneoInverso extends ReglasEstandar{
+    override def quienesPasanALaSiguienteRonda(participantes: List[Participante]): List[Participante] = {
+      participantes.drop(participantes.length / 2)
+    }
+
+    override def obtenerGanador(participantes: List[Participante]): Option[Participante] = {
+      participantes.reverse.headOption
+    }
+  }
+
+  /////////////////////
+  // C O N   V E T O //
+  /////////////////////
+
+  case class ReglasConVeto(condicionParaLosDragones : CondicionDragon) extends ReglasEstandar{
+    override def prepararParaLaPosta(posta: Posta, vikingos: List[Vikingo], dragones: List[Dragon]): List[Participante] = {
+      val dragonesQueCumplenCondicion = dragones.filter(condicionParaLosDragones(_))
+      super.prepararParaLaPosta(posta,vikingos,dragones)
+    }
+  }
+
+  /////////////////////////////
+  // C O N   H A N D I C A P //
+  /////////////////////////////
+
+  case object ReglasConHandicap extends ReglasEstandar{
+    override def prepararParaLaPosta(posta: Posta, vikingos: List[Vikingo], dragones: List[Dragon]): List[Participante] = {
+      super.prepararParaLaPosta(posta, vikingos.reverse, dragones)
+    }
+  }
+
+  type CondicionDragon = Dragon => Boolean
 
 }
