@@ -24,6 +24,21 @@ package object FestivalDelInvierno {
     }
 
   }
+  ///////////////////
+  /// E Q U I P O ///
+  ///////////////////
+
+  /*case class Equipo(nombre:String,miembros:List[Vikingo]) extends Participante{
+
+    def pedirIntegrantesConIdentifiacion():List[(Vikingo,String)]={
+      return miembros.map(vikingo=>prepararTuplaParaParticipar(vikingo,nombre))
+    }
+
+    def prepararTuplaParaParticipar(vikingo: Vikingo,nombreEquipo: String): (Vikingo,String) ={
+      return (vikingo,nombreEquipo)
+    }
+
+  }*/
 
   ///////////////////
   /// J I N E T E ///
@@ -424,7 +439,7 @@ package object FestivalDelInvierno {
   // E S T A N D A R //
   /////////////////////
 
-  case class ReglasEstandar() extends Regla{
+  abstract class ReglasEstandar() extends Regla{
 
     override def prepararParaLaPosta(posta: Posta, vikingos: List[Vikingo], dragones : List[Dragon]): List[Participante] = {
       var dragonesRestantes : List[Dragon] = dragones
@@ -499,5 +514,7 @@ package object FestivalDelInvierno {
   }
 
   type CondicionDragon = Dragon => Boolean
+
+  //case object ReglaPorEquipos extends Regla
 
 }
