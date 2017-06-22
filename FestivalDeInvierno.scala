@@ -16,22 +16,37 @@ package object FestivalDelInvierno {
 
   trait Participante {
     def maximoKilosPescado: Double
+
     def barbarosidad: Double
+
     def tieneArma: Boolean
+
     def danio: Double
+
     def velocidad: Double
+
     def nivelDeHambre: Double
+
     def aumentarHambrePorPosta(unaPosta: Posta): Try[Participante]
+
     def esMejorQue(unParticipante: Participante, unaPosta: Posta): Boolean = {
-      unaPosta match{
-        case Pesca(_) => CriterioMejorPescador(this,unParticipante)
-        case Combate(_) => CriterioMejorCombate(this,unParticipante)
-        case Carrera(_,_) => CriterioMejorCarrera(this,unParticipante)
+      unaPosta match {
+        case Pesca(_) => CriterioMejorPescador(this, unParticipante)
+        case Combate(_) => CriterioMejorCombate(this, unParticipante)
+        case Carrera(_, _) => CriterioMejorCarrera(this, unParticipante)
       }
 
+      def mejorEnPosta(unParticipante: Participante, unaPosta: Posta): Participante = {
+        unaPosta match {
+          case Pesca(_) => MejorPescador(this, unParticipante)
+          case Combate(_) => MejorCombatiente(this, unParticipante)
+          case Carrera(_, _) => MejorCorredor(this, unParticipante)
+        }
+
+      }
+
+
     }
-
-
   }
 
 
@@ -54,24 +69,25 @@ package object FestivalDelInvierno {
 
     }
 
-      def aumentarHambre(unaCantidad: Double): Try[Vikingo] = {
-        val hambriento: Boolean = nivelDeHambre + unaCantidad < 100
-        hambriento match {
-          case false => Success(this.copy(nivelDeHambre = nivelDeHambre + unaCantidad))
-          case true => Failure(throw new IllegalArgumentException)
-        }
+    def aumentarHambre(unaCantidad: Double): Try[Vikingo] = {
+      val hambriento: Boolean = nivelDeHambre + unaCantidad < 100
+      hambriento match {
+        case false => Success(this.copy(nivelDeHambre = nivelDeHambre + unaCantidad))
+        case true => Failure(throw new IllegalArgumentException)
       }
+    }
 
     override def aumentarHambrePorPosta(unaPosta: Posta): Try[Vikingo] = {
       unaPosta match {
         case Pesca(_) => aumentarHambre(5)
         case Combate(_) => aumentarHambre(10)
-        case Carrera(_,cantKilometros) =>  aumentarHambre(cantKilometros)
+        case Carrera(_, cantKilometros) => aumentarHambre(cantKilometros)
 
       }
     }
 
-    override def velocidad : Double = velocidadBase
+    override def velocidad: Double = velocidadBase
+
     override def maximoKilosPescado: Double = peso * 0.5 + barbarosidad * 2
 
     override def danio = {
@@ -89,7 +105,8 @@ package object FestivalDelInvierno {
 
     }
 
-    def mejorMontura(dragones: List[Dragon],unaPosta: Posta): Participante = {
+
+    /*
       val dragonesMontables: List[Dragon]  = dragones.filter(_.puedeMontarme(this))
       val posiblesJinetes: List[Jinete] = dragonesMontables.map(unDragon => montar(unDragon).get)
       val mejorJineteVikingo: List[Participante] = posiblesJinetes.map { unJinete =>
@@ -112,9 +129,21 @@ package object FestivalDelInvierno {
       }
       mejorCompetidor
     }
+  */
 
+    def mejorMontura(dragones: List[Dragon], unaPosta: Posta): Option[Participante] = {
 
+      val mejoresCombinaciones: List[Participante] =  for  {
+        dragon <- dragones if dragon.puedeMontarme(this)
+        unJinete: Jinete = montar(dragon)
+        unaPosta.puedeParticipar(unJinete)
 
+      }yield if (this.esMejorQue(unJinete,unaPosta) && unaPosta.puedeParticipar(this)) this
+              else unJinete
+
+      val mejorForma: Option[Participante] = mejoresCombinaciones.sortWith( (participante,otro) => participante.esMejorQue(otro,unaPosta)).headOption
+      mejorForma
+    }
   }
 
   trait Item
@@ -129,43 +158,28 @@ package object FestivalDelInvierno {
 
   trait Dragon {
     def velocidad: Double
-
     def danio: Double
-
     def peso: Double
-
     def requisitos: List[Requisito]
-
     def puedeMontarme(unVikingo: Vikingo): Boolean = requisitos.forall(requisito => requisito.apply(unVikingo, this))
   }
 
   case class FuriaNocturna(velocidadBase: Double = 60, danioBase: Double, pesoBase: Double, requisitos: List[Requisito]) extends Dragon {
     override def velocidad: Double = this.velocidadBase * 5
-
     override def danio: Double = this.danioBase
-
     override def peso: Double = this.pesoBase
-
-
   }
 
   case class Gronckle(velocidadBase: Double = 60, danioBase: Double, pesoBase: Double, requisitos: List[Requisito]) extends Dragon {
-
     override def velocidad: Double = velocidadBase / 2
-
     override def danio: Double = danioBase * 5
-
     override def peso: Double = pesoBase
   }
 
   case class NadderMortifero(velocidadBase: Double = 60, danioBase: Double = 150, pesoBase: Double, requisitos: List[Requisito]) extends Dragon {
-
     override def velocidad: Double = velocidadBase / 2
-
     override def danio: Double = 150
-
     override def peso: Double = pesoBase
-
   }
 
   trait Requisito {
@@ -205,18 +219,12 @@ package object FestivalDelInvierno {
 
   case class Jinete(unVikingo: Vikingo, unDragon: Dragon) extends Participante {
     override def maximoKilosPescado = unVikingo.peso - unDragon.peso * 0.2
-
     override def barbarosidad: Double = unVikingo.barbarosidad
     override def danio = unVikingo.fuerza + unDragon.danio
-
     override def velocidad = unDragon.velocidad - unVikingo.peso
-
     override def tieneArma: Boolean = unVikingo.tieneArma
-
     override def nivelDeHambre: Double = unVikingo.nivelDeHambre
-
     override def aumentarHambrePorPosta(unaPosta: Posta): Try[Participante] = unVikingo.aumentarHambre(5)
-
   }
 
   trait Posta {
@@ -244,8 +252,8 @@ package object FestivalDelInvierno {
 
   object CriterioMejorPescador{
     def apply(unParticipante: Participante, otroParticipante: Participante): Boolean = unParticipante.maximoKilosPescado > otroParticipante.maximoKilosPescado
-
     }
+
    object MejorPescador{
      def apply(unParticipante: Participante, otroParticipante: Participante): Participante = {
        if(CriterioMejorPescador(unParticipante,otroParticipante)) unParticipante
@@ -253,16 +261,13 @@ package object FestivalDelInvierno {
      }
    }
 
-
   case class Combate(barbarosidadMinima: Double) extends Posta{
     override def puedeParticipar(unParticipante: Participante): Boolean = {
       val reqBasico: Boolean = RequisitoBasicoPosta(unParticipante,this)
       val superaBarbarosidadMinima = unParticipante.barbarosidad > barbarosidadMinima
       val tieneArma = unParticipante.tieneArma
       val cumpleCondicion = (tieneArma | superaBarbarosidadMinima) && reqBasico
-
       cumpleCondicion
-
     }
 
     override def participar(participantes: List[Participante]): List[Participante] = {
@@ -342,5 +347,9 @@ package object FestivalDelInvierno {
     }
   }
 
+  case class Torneo(postas: List[Posta], vikingos: List[Vikingo], dragones: Set[Dragon]) {
 
+
+
+  }
 }
