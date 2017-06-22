@@ -1,346 +1,265 @@
-
-/**
-  * Created by TYPE Null on 9/6/2017.
-  */
-
-package object FestivalDelInvierno {
-  import scala.util.Failure
-  import scala.util.Try
-  import scala.util.Success
+package main
 
 
-  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  /////////////////////////////////////////////////// P A R T I C I P A N T E S //////////////////////////////////////////////////////////////////////////
-  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-  trait Participante {
-    def maximoKilosPescado: Double
-    def barbarosidad: Double
-    def tieneArma: Boolean
-    def danio: Double
-    def velocidad: Double
-    def nivelDeHambre: Double
-    def aumentarHambrePorPosta(unaPosta: Posta): Try[Participante]
-    def esMejorQue(unParticipante: Participante, unaPosta: Posta): Boolean = {
+package object FestivalDeInvierno {
+  
+  trait Competidor {
+    def cargarPescados(cantidad:Int){
+      require(0 to this.cantMaxPescados() contains cantidad, "Cantidad no valida")
+    }
+    def barbarosidad:Int
+    def cantMaxPescados():Int
+    def danio:Int
+    def tieneItem(unItem:Item):Boolean
+    def velocidad:Int
+    def hambre:Int
+    def aumentarHambre(cantidad:Int):Competidor
+    def esMejorQue(unCompetidor: Competidor)(unaPosta: Posta): Boolean =
       unaPosta match{
-        case Pesca(_) => CriterioMejorPescador(this,unParticipante)
-        case Combate(_) => CriterioMejorCombate(this,unParticipante)
-        case Carrera(_,_) => CriterioMejorCarrera(this,unParticipante)
+      case Pesca(_,_) => this.cantMaxPescados() > unCompetidor.cantMaxPescados()
+      case Combate(_,_) => this.danio > unCompetidor.danio
+      case Carrera(_,_) => this.velocidad > unCompetidor.velocidad
+    }
+    
+  }
+
+  case class Jinete(unVikingo:Vikingo,unDragon:Dragon) extends Competidor{
+    def cantMaxPescados():Int = unDragon.peso / 5 - unVikingo.peso
+    def danio=unVikingo.danio + unDragon.danio
+    def hambre=unVikingo.caracteristicas.hambre
+    def barbarosidad=unVikingo.barbarosidad
+    def tieneItem(unItem:Item) = unVikingo.tieneItem(unItem)
+    def aumentarHambre(cantidad:Int) =
+      this.copy(unVikingo = unVikingo.aumentarHambre(5))
+    
+    def velocidad=unDragon.velocidad()-unVikingo.peso
+  }
+
+
+  case class Vikingo(item:Item,
+                     caracteristicas: Caracteristicas) extends Competidor{
+
+    def peso = this.caracteristicas.peso
+    def velocidad=this.caracteristicas.velocidad
+    def hambre=this.caracteristicas.hambre
+    def barbarosidad=this.caracteristicas.barbarosidad
+    def tieneItem(unItem:Item):Boolean = item == unItem
+    def danio=this.barbarosidad + item.danio
+    
+    def aumentarHambre(cantidad:Int) =
+      this.copy(caracteristicas = caracteristicas.copy(hambre = caracteristicas.hambre + cantidad))
+
+    
+    def cantMaxPescados():Int = peso / 2 + barbarosidad * 2
+    
+    def montar(unDragon:Dragon): Option[Jinete] =
+      if (this.puedeMontar(unDragon))
+        Some(Jinete(this,unDragon))
+      else
+        None
+      
+    def puedeMontar(unDragon:Dragon): Boolean =
+      unDragon.requisitos.foldRight(true)((a,b) => a(this, unDragon).&&(b))
+      
+    def mejorMontura(dragones:List[Dragon])(unaPosta:Posta):Competidor = {
+      val jinetes = dragones
+          .flatMap(dragon => this.montar(dragon)
+          .flatMap{jinete => if (unaPosta.puedeParticipar(jinete)) Some(jinete) else None})
+        jinetes.foldRight(this:Competidor){(jinete,competidor) =>
+          if (jinete.esMejorQue(competidor)(unaPosta))
+            jinete
+          else competidor
       }
-
-    }
-
-
-  }
-
-
-  case class Vikingo(peso: Double,
-                     velocidadBase: Double,
-                     barbarosidad: Double,
-                     fuerza: Double,
-                     nivelDeHambre: Double,
-                     item: Option[Item]) extends Participante {
-    require(peso > 0, "El peso debe ser positivo")
-    require(velocidadBase >= 0, "La velocidad debe ser positiva")
-    require(barbarosidad >= 0, "Barbarosidad debe ser mayor que 0")
-    require(fuerza >= 0, "La Fuerza debe ser mayor que 0")
-    require(0 to 100 contains nivelDeHambre, "El nivel de hambre no puede superar el 100%")
-
-    def montar(unDragon: Dragon): Option[Jinete] = {
-
-      if (unDragon.puedeMontarme(this)) Some(Jinete(this, unDragon))
-      else None
-
-    }
-
-      def aumentarHambre(unaCantidad: Double): Try[Vikingo] = {
-        val hambriento: Boolean = nivelDeHambre + unaCantidad < 100
-        hambriento match {
-          case false => Success(this.copy(nivelDeHambre = nivelDeHambre + unaCantidad))
-          case true => Failure(throw new IllegalArgumentException)
-        }
-      }
-
-    override def aumentarHambrePorPosta(unaPosta: Posta): Try[Vikingo] = {
-      unaPosta match {
-        case Pesca(_) => aumentarHambre(5)
-        case Combate(_) => aumentarHambre(10)
-        case Carrera(_,cantKilometros) =>  aumentarHambre(cantKilometros)
-
-      }
-    }
-
-    override def velocidad : Double = velocidadBase
-    override def maximoKilosPescado: Double = peso * 0.5 + barbarosidad * 2
-
-    override def danio = {
-      this.item match {
-        case Some(Arma(unDanio)) => fuerza + unDanio
-        case _ => fuerza
-      }
-    }
-
-    override def tieneArma: Boolean = {
-      item match {
-        case Some(Arma(unDanio)) => true
-        case _ => false
-      }
-
-    }
-
-    def mejorMontura(dragones: List[Dragon],unaPosta: Posta): Participante = {
-      val dragonesMontables: List[Dragon]  = dragones.filter(_.puedeMontarme(this))
-      val posiblesJinetes: List[Jinete] = dragonesMontables.map(unDragon => montar(unDragon).get)
-      val mejorJineteVikingo: List[Participante] = posiblesJinetes.map { unJinete =>
-
-        unaPosta match {
-          case Pesca(_) => MejorPescador(unJinete,this)
-          case Combate(_) => MejorCombatiente(unJinete,this)
-          case Carrera(_,_) => MejorCorredor(unJinete,this)
-        }
-      }
-      val cumplenRequisito: List[Participante] = mejorJineteVikingo.filter(unaPosta.puedeParticipar(_))
-      val mejorCompetidor: Participante = cumplenRequisito.reduceLeft{ (unCompetidor, otroCompetidor) =>
-        unaPosta match {
-          case Pesca(_) => MejorPescador(unCompetidor, otroCompetidor)
-          case Combate(_) => MejorCombatiente(unCompetidor, otroCompetidor)
-          case Carrera(_,_) => MejorCorredor(unCompetidor, otroCompetidor)
-        }
-
-
-      }
-      mejorCompetidor
-    }
-
-
-
-  }
-
-  trait Item
-
-  case class Arma(danio: Double) extends Item{
-    require(danio >= 0, "El danio es siempre positivo")
-  }
-
-  case object SistemaDeVuelo extends Item
-
-  case class Alimento(subirEnergia: Double) extends Item
-
-  trait Dragon {
-    def velocidad: Double
-
-    def danio: Double
-
-    def peso: Double
-
-    def requisitos: List[Requisito]
-
-    def puedeMontarme(unVikingo: Vikingo): Boolean = requisitos.forall(requisito => requisito.apply(unVikingo, this))
-  }
-
-  case class FuriaNocturna(velocidadBase: Double = 60, danioBase: Double, pesoBase: Double, requisitos: List[Requisito]) extends Dragon {
-    override def velocidad: Double = this.velocidadBase * 5
-
-    override def danio: Double = this.danioBase
-
-    override def peso: Double = this.pesoBase
-
-
-  }
-
-  case class Gronckle(velocidadBase: Double = 60, danioBase: Double, pesoBase: Double, requisitos: List[Requisito]) extends Dragon {
-
-    override def velocidad: Double = velocidadBase / 2
-
-    override def danio: Double = danioBase * 5
-
-    override def peso: Double = pesoBase
-  }
-
-  case class NadderMortifero(velocidadBase: Double = 60, danioBase: Double = 150, pesoBase: Double, requisitos: List[Requisito]) extends Dragon {
-
-    override def velocidad: Double = velocidadBase / 2
-
-    override def danio: Double = 150
-
-    override def peso: Double = pesoBase
-
-  }
-
-  trait Requisito {
-    def apply(unVikingo: Vikingo, unDragon: Dragon): Boolean
-  }
-
-  case object RequisitoBase extends Requisito {
-    override def apply(unVikingo: Vikingo, unDragon: Dragon): Boolean = {
-      unDragon.peso * 0.2 > unVikingo.peso
-    }
-  }
-
-  case class RequisitoBarbarosidad(minimoBarbarosidad: Double) extends Requisito {
-    override def apply(unVikingo: Vikingo, unDragon: Dragon): Boolean = {
-      unVikingo.barbarosidad > minimoBarbarosidad
-    }
-  }
-
-  case class RequisitoObjeto(unObjeto: Item) extends Requisito {
-    override def apply(unVikingo: Vikingo, unDragon: Dragon): Boolean = {
-      unVikingo.item == unObjeto
-    }
-  }
-
-  case object RequisitoNadder extends Requisito {
-    override def apply(unVikingo: Vikingo, unDragon: Dragon): Boolean = {
-      unVikingo.fuerza < unDragon.danio
-    }
-  }
-
-  case class RequisitoGronckle(pesoMaximo: Double) extends Requisito {
-    override def apply(unVikingo: Vikingo, unDragon: Dragon): Boolean = {
-      unVikingo.peso < pesoMaximo
-    }
-  }
-
-
-  case class Jinete(unVikingo: Vikingo, unDragon: Dragon) extends Participante {
-    override def maximoKilosPescado = unVikingo.peso - unDragon.peso * 0.2
-
-    override def barbarosidad: Double = unVikingo.barbarosidad
-    override def danio = unVikingo.fuerza + unDragon.danio
-
-    override def velocidad = unDragon.velocidad - unVikingo.peso
-
-    override def tieneArma: Boolean = unVikingo.tieneArma
-
-    override def nivelDeHambre: Double = unVikingo.nivelDeHambre
-
-    override def aumentarHambrePorPosta(unaPosta: Posta): Try[Participante] = unVikingo.aumentarHambre(5)
-
-  }
-
-  trait Posta {
-    def puedeParticipar(unParticipante: Participante): Boolean
-    def participar(participantes: List[Participante]): List[Participante]
-  }
-
-  case class Pesca(pesoMinimo: Option[Double]) extends Posta {
-    override def puedeParticipar(unParticipante: Participante): Boolean = {
-      val reqBasico: Boolean = RequisitoBasicoPosta(unParticipante,this)
-      this.pesoMinimo match {
-        case Some(num) => (unParticipante.maximoKilosPescado > num) && reqBasico
-        case _ => true && reqBasico
-      }
-    }
-
-    override def participar(participantes: List[Participante]): List[Participante] = {
-      val puedenParticipar = participantes.filter(this.puedeParticipar(_))
-      val mejoresParticipantes = puedenParticipar.sortWith(CriterioMejorPescador(_,_))
-      val participanteModificado = mejoresParticipantes.map(_.aumentarHambrePorPosta(this).get)
-      return participanteModificado
-    }
-
-  }
-
-  object CriterioMejorPescador{
-    def apply(unParticipante: Participante, otroParticipante: Participante): Boolean = unParticipante.maximoKilosPescado > otroParticipante.maximoKilosPescado
-
-    }
-   object MejorPescador{
-     def apply(unParticipante: Participante, otroParticipante: Participante): Participante = {
-       if(CriterioMejorPescador(unParticipante,otroParticipante)) unParticipante
-       else otroParticipante
+      
      }
-   }
+  
+  }
 
-
-  case class Combate(barbarosidadMinima: Double) extends Posta{
-    override def puedeParticipar(unParticipante: Participante): Boolean = {
-      val reqBasico: Boolean = RequisitoBasicoPosta(unParticipante,this)
-      val superaBarbarosidadMinima = unParticipante.barbarosidad > barbarosidadMinima
-      val tieneArma = unParticipante.tieneArma
-      val cumpleCondicion = (tieneArma | superaBarbarosidadMinima) && reqBasico
-
-      cumpleCondicion
-
-    }
-
-    override def participar(participantes: List[Participante]): List[Participante] = {
-      val puedenParticipar = participantes.filter(this.puedeParticipar(_))
-      val mejoresParticipantes = puedenParticipar.sortWith(CriterioMejorCombate(_,_))
-      val participanteModificado = mejoresParticipantes.map(_.aumentarHambrePorPosta(this).get)
-      return participanteModificado
-    }
+  case class Caracteristicas(peso:Int,
+                             velocidad:Int,
+                             barbarosidad:Int,
+                             hambre:Int){
 
   }
 
-  object CriterioMejorCombate{
-    def apply(unParticipante: Participante, otroParticipante: Participante): Boolean = {
-      val mejorParticipante = unParticipante.danio > otroParticipante.danio
-      mejorParticipante
+  case class Item(danio:Int){
+
+  }
+  
+  trait Dragon{
+    def requisitos: List[Requisito] = List(RequisitoBasico)
+    def peso: Int
+    def danio: Int
+    def velocidadBase: Int = 60
+    def velocidad(): Int = velocidadBase - peso
+
+  }
+  
+  case class FuriaNocturna(
+      peso: Int,
+      danio: Int) extends Dragon{
+    
+    override def velocidad(): Int = {
+      super.velocidad()*3
     }
+    
+    
   }
 
-  object MejorCombatiente{
-      def apply(unParticipante: Participante, otroParticipante: Participante):Participante = {
 
-        CriterioMejorCombate(unParticipante,otroParticipante) match{
-        case true => unParticipante
-        case _ => otroParticipante
-      }
-    }
+  case class NadderMortifero(
+      peso: Int,
+      danio: Int = 150,
+      override val requisitos:List[Requisito] = List(RequisitoBasico,RequisitoDeDanio)) extends Dragon{
+
   }
 
-  case class Carrera(necesitaMontura: Boolean,cantKilometros: Double)extends Posta{
-    override def puedeParticipar(unParticipante: Participante): Boolean = {
-      val reqBasico: Boolean = RequisitoBasicoPosta(unParticipante,this)
-      if(necesitaMontura){
-        unParticipante match{
-          case Jinete(_,_) => true && reqBasico
-          case _ => false
+  case class Gronckle(peso: Int, pesoMaximo:Int) extends Dragon{
+    
+    override val requisitos:List[Requisito] = List(RequisitoDePeso(pesoMaximo))
+    override def velocidadBase = super.velocidadBase / 2
+    def danio = peso * 5
+   
 
+  }
+  
+  sealed trait Requisito {
+    def apply(unVikingo:Vikingo, unDragon:Dragon):Boolean
+  }
+  
+  case object RequisitoBasico extends Requisito{
+    def apply(unVikingo:Vikingo, unDragon:Dragon):Boolean =
+      unVikingo.peso <= unDragon.peso / 5
+  }
+  
+  case class RequisitoBarbarosidad(minimo:Int) extends Requisito{
+    def apply(unVikingo:Vikingo, unDragon:Dragon):Boolean =
+      unVikingo.barbarosidad > this.minimo
+  }
+  
+  case class RequisitoDeItem(unItem:Item) extends Requisito{
+    def apply(unVikingo:Vikingo, unDragon:Dragon):Boolean =
+      unVikingo.tieneItem(unItem)
+  }
+  
+  case object RequisitoDeDanio extends Requisito{
+    def apply(unVikingo:Vikingo, unDragon:Dragon):Boolean =
+      unVikingo.danio < unDragon.danio
+  }
+  
+  case class RequisitoDePeso(pesoMaximo: Int) extends Requisito{
+    def apply(unVikingo:Vikingo, unDragon:Dragon):Boolean =
+      unVikingo.peso <= pesoMaximo
+  }
+  
+  sealed trait CriterioAdmision
+  
+  case class CriterioHambre(hambre:Int) extends CriterioAdmision{
+    def apply(unCompetidor: Competidor):Boolean =
+      unCompetidor.aumentarHambre(hambre).hambre <= 100
+  }
+  
+  case class CriterioPesoCarga(minimo:Int) extends CriterioAdmision{
+    def apply(unCompetidor: Competidor):Boolean =
+      unCompetidor.cantMaxPescados() > minimo
+  }
+  
+  case class CriterioBarbarosidadMinima(minimo:Int) extends CriterioAdmision{
+    def apply(unCompetidor: Competidor):Boolean =
+      unCompetidor.barbarosidad > minimo
+  }
+  
+  case class CriterioDeArma(unArma: Item) extends CriterioAdmision{
+    def apply(unCompetidor: Competidor):Boolean =
+      unCompetidor.tieneItem(unArma)
+  }
+  
+  case class CriterioMontura() extends CriterioAdmision{
+    def apply(unCompetidor: Competidor):Boolean =
+      unCompetidor.isInstanceOf[Jinete]
+  }
+  
+  trait Posta{
+    def hambreProvocada:Int
+    def cumpleCriterio(unCompetidor: Competidor):Boolean
+    def puedeParticipar(unCompetidor: Competidor):Boolean =
+      CriterioHambre(this.hambreProvocada)(unCompetidor) && this.cumpleCriterio(unCompetidor)
+  }
+  
+  case class Pesca(requisito: Option[CriterioPesoCarga],hambreProvocada:Int = 5) extends Posta{
+    override def cumpleCriterio(unCompetidor: Competidor) =
+      requisito match {
+      case Some(_) => requisito.get(unCompetidor)
+      case None => true
+    }
+  }
+  
+  case class Combate(requisito: Either[CriterioBarbarosidadMinima,CriterioDeArma],hambreProvocada:Int = 10) extends Posta{
+    override def cumpleCriterio(unCompetidor: Competidor) =
+      requisito match {
+      case Left(CriterioBarbarosidadMinima(_)) => requisito.left.get(unCompetidor)
+      case Right(CriterioDeArma(_)) => requisito.right.get(unCompetidor)
+    }
+  }
+  
+  case class Carrera(requisito: Option[CriterioMontura],distancia:Int) extends Posta{
+    def hambreProvocada = distancia
+    override def cumpleCriterio(unCompetidor: Competidor) =
+      requisito match{
+      case Some(unRequisito) => unRequisito(unCompetidor)
+      case None => true
+    }
+  }
+  trait EstadoTorneo{
+    def participantes:List[Competidor]
+    def mapearAVikingo(competidores: List[Competidor]):List[Vikingo] =
+      competidores.map (unCompetidor => this.aVikingo(unCompetidor))
+  
+    def aVikingo(competidor: Competidor): Vikingo = competidor match {
+        case Jinete(unVikingo,_) => unVikingo
+        case Vikingo(item,caracteristicas) => Vikingo(item,caracteristicas)
         }
-      }else (true && reqBasico)
-    }
-
-
-    override def participar(participantes: List[Participante]): List[Participante] = {
-      val puedenParticipar = participantes.filter(this.puedeParticipar(_))
-      val mejoresParticipantes = puedenParticipar.sortWith(CriterioMejorCarrera(_,_))
-      val participanteModificado = mejoresParticipantes.map(_.aumentarHambrePorPosta(this).get)
-      return participanteModificado
-    }
-
-
- }
-
-  object CriterioMejorCarrera{
-    def apply(unParticipante: Participante, otroParticipante: Participante): Boolean = {
-      val participanteMasRapido: Boolean = unParticipante.velocidad > otroParticipante.velocidad
-      participanteMasRapido
-    }
   }
-  object MejorCorredor{
-    def apply(unParticipante: Participante, otroParticipante: Participante): Participante ={
-      CriterioMejorCarrera(unParticipante,otroParticipante) match{
-        case true => unParticipante
-        case false => otroParticipante
+  
+  case class Ronda(participantes: List[Competidor]) extends EstadoTorneo{
+    def realizar(unaPosta: Posta): EstadoTorneo = {
+      val participantesFiltrados = participantes.filter(unaPosta.puedeParticipar(_))
+      participantesFiltrados match {
+        case participante :: resto if resto.size > 1 =>
+          val resultantes = (participante::resto).sortWith((p1,p2) => p1.esMejorQue(p2)(unaPosta)).map(_.aumentarHambre(unaPosta.hambreProvocada))
+          Ronda(resultantes)
+        case participante :: Nil => Finalizado(List(participante))
+        case Nil => Finalizado(List())
       }
     }
   }
 
-
-  object RequisitoBasicoPosta{
-    def apply(unParticipante: Participante, unaPosta: Posta): Boolean = {
-      val participanteDelFuturo: Try[Participante] = unParticipante.aumentarHambrePorPosta(unaPosta)
-      participanteDelFuturo match{
-        case Success(_) => true
-        case Failure(_) => false
-      }
-
-
-    }
+  
+  case class Finalizado(participantes: List[Competidor]) extends EstadoTorneo{
+    def realizar(unaPosta: Posta): EstadoTorneo = this
   }
-
-
+ 
+  case class Torneo(postas: List[Posta], dragonesDisponibles: List[Dragon], reglas: Reglas){
+    def realizar(participantes: List[Vikingo]) = 
+      postas.foldLeft(Ronda(participantes):EstadoTorneo) { (rondaAnterior, postaActual) => 
+        val participantesPreparados = reglas.elegirMontura(rondaAnterior.mapearAVikingo(rondaAnterior.participantes))(dragonesDisponibles)
+        rondaAnterior match {
+          case Ronda(_) =>
+            val resultado = Ronda(participantesPreparados).realizar(postaActual)
+            Ronda(reglas.avanzanASiguiente(resultado.participantes))
+          
+          case Finalizado(participantes) => Finalizado(participantes)
+        
+       }
+     }
+  }
+  
+  trait Reglas{
+    def elegirMontura(participantes:List[Vikingo])(dragonesDisponibles:List[Dragon]):List[Competidor]
+    def avanzanASiguiente(participantes:List[Competidor]):List[Competidor]
+    def ganador(participantes:List[Competidor]):Option[Vikingo]
+  }
+  
+  case class ReglasEstandar(){
+  }
 }
