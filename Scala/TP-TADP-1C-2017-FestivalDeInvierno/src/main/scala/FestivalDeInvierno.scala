@@ -4,7 +4,7 @@ import scala.util.Random
 /**
   * Created by TYPE Null on 9/6/2017.
   */
-package object FestivalDelInvierno {
+package object FestivalDelInviernoV4 {
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   /////////////////////////////////////////////////// P A R T I C I P A N T E S //////////////////////////////////////////////////////////////////////////
@@ -18,7 +18,7 @@ package object FestivalDelInvierno {
 
   class EquipoVikingo(var vikingos : List[Vikingo] = List()) extends Participante{
     def reagruparEquipo(unosVikingos : List[Vikingo]) : Unit = {
-      vikingos = vikingos diff unosVikingos
+      vikingos = unosVikingos.filter(vikingos.contains(_))
     }
 
     def agregarVikingo(vikingo : Vikingo) : Unit = {
@@ -387,7 +387,7 @@ package object FestivalDelInvierno {
       }
     }
 
-    def jugarTorneoSinEquipos(vikingos : List[Vikingo]) : Option[Jugador] = {
+    def jugarTorneoSinEquipos(vikingos : List[Vikingo]) : Option[Participante] = {
       var vikingosRestantes : List[Vikingo] = vikingos
       for (posta <- postas) {
         vikingosRestantes.length match{
@@ -425,16 +425,13 @@ package object FestivalDelInvierno {
     }
 
     def reagruparEquipos(unosVikingos : List[Vikingo]): List[EquipoVikingo] ={
-      var vikingosRestantes : List[Vikingo] = unosVikingos
-      var equiposRestantes : List[EquipoVikingo] = List()
-      var equipo : EquipoVikingo = new EquipoVikingo()
-      for(vikingo <- vikingosRestantes){
-        equipo = vikingo.equipo.get
-        equipo = new EquipoVikingo(equipo.vikingos diff unosVikingos)
-        vikingosRestantes = vikingosRestantes diff equipo.vikingos
-        equiposRestantes = equipo :: equiposRestantes
+      var equiposRestantes : Set[EquipoVikingo] = Set()
+      for(vikingo <- unosVikingos){
+        var equipo : EquipoVikingo = vikingo.equipo.get
+        equiposRestantes += equipo
       }
-      equiposRestantes
+      equiposRestantes.map(_.reagruparEquipo(unosVikingos))
+      equiposRestantes.toList
     }
 
     def obtenerVikingosDespuesDeLaPosta(jugadores : List[Jugador]) : List[Vikingo] = {
@@ -475,8 +472,12 @@ package object FestivalDelInvierno {
     }
 
     def quienesPasanALaSiguienteRonda(participantes: List[Jugador]) : List[Jugador]
-    def obtenerGanador(participantes : List[Jugador]) : Option[Jugador]
+    def obtenerGanador(participantes : List[Jugador]) : Option[Participante]
   }
+
+  /////////////////////////////////////
+  /////// P O R   E Q U I P O S ///////
+  /////////////////////////////////////
 
   case object ReglasPorEquipos extends Regla{
 
@@ -484,9 +485,13 @@ package object FestivalDelInvierno {
       participantes.drop(participantes.length / 2)
     }
 
-    override def obtenerGanador(participantes: List[Jugador]): Option[Jugador] = Random.shuffle(participantes).headOption
+    override def obtenerGanador(participantes: List[Jugador]): Option[Participante] = Random.shuffle(participantes).head.equipo
 
   }
+
+  /////////////////////////////////////
+  ///////// E S T A N D A R ///////////
+  /////////////////////////////////////
 
   case class ReglasEstandar() extends Regla{
 
@@ -494,9 +499,13 @@ package object FestivalDelInvierno {
       participantes.take(participantes.length / 2)
     }
 
-    override def obtenerGanador(participantes: List[Jugador]): Option[Jugador] = participantes.headOption
+    override def obtenerGanador(participantes: List[Jugador]): Option[Participante] = participantes.headOption
 
   }
+
+  /////////////////////////////////////
+  /// P O R   E L I M I N A C I O N ///
+  /////////////////////////////////////
 
   case class ReglasDeEliminacion(numeroDeParticipantesEliminadosParaLaSiguienteRonda : Int) extends ReglasEstandar{
     require(numeroDeParticipantesEliminadosParaLaSiguienteRonda>=0)
@@ -505,15 +514,23 @@ package object FestivalDelInvierno {
     }
   }
 
+  /////////////////////////////////////
+  //// T O R N E O   I N V E R S O ////
+  /////////////////////////////////////
+
   case object ReglasDeTorneoInverso extends ReglasEstandar{
     override def quienesPasanALaSiguienteRonda(participantes: List[Jugador]): List[Jugador] = {
       participantes.drop(participantes.length / 2)
     }
 
-    override def obtenerGanador(participantes: List[Jugador]): Option[Jugador] = {
+    override def obtenerGanador(participantes: List[Jugador]): Option[Participante] = {
       participantes.reverse.headOption
     }
   }
+
+  /////////////////////////////////////
+  ///////// P O R   V E T O ///////////
+  /////////////////////////////////////
 
   case class ReglasConVeto(condicionParaLosDragones : CondicionDragon) extends ReglasEstandar{
     override def prepararParaLaPosta(posta: Posta, vikingos: List[Vikingo], dragones: List[Dragon]): List[Jugador] = {
@@ -521,6 +538,10 @@ package object FestivalDelInvierno {
       super.prepararParaLaPosta(posta,vikingos,dragones)
     }
   }
+
+  /////////////////////////////////////
+  ////// C O N   H A N D I C A P //////
+  /////////////////////////////////////
 
   case object ReglasConHandicap extends ReglasEstandar{
     override def prepararParaLaPosta(posta: Posta, vikingos: List[Vikingo], dragones: List[Dragon]): List[Jugador] = {
