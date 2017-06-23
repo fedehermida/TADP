@@ -1,16 +1,15 @@
-import scala.collection.mutable
 import scala.util.Random
 
 /**
   * Created by TYPE Null on 9/6/2017.
   */
-package object FestivalDelInviernoV4 {
+package object FestivalDelInvierno {
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   /////////////////////////////////////////////////// P A R T I C I P A N T E S //////////////////////////////////////////////////////////////////////////
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  trait Participante
+  sealed trait Participante
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   /////////////////////////////////////////////////////////// E Q U I P O ////////////////////////////////////////////////////////////////////////////////
@@ -18,11 +17,7 @@ package object FestivalDelInviernoV4 {
 
   class EquipoVikingo(var vikingos : List[Vikingo] = List()) extends Participante{
     def reagruparEquipo(unosVikingos : List[Vikingo]) : Unit = {
-      vikingos = unosVikingos.filter(vikingos.contains(_))
-    }
-
-    def agregarVikingo(vikingo : Vikingo) : Unit = {
-      vikingos = (vikingo :: vikingos)
+      vikingos = unosVikingos.filter(vikingos.contains)
     }
   }
 
@@ -31,11 +26,11 @@ package object FestivalDelInviernoV4 {
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   trait Jugador extends Participante{
-    def peso:Int
-    def danio:Int
+    def peso:Double
+    def danio:Double
     def equipo:Option[EquipoVikingo]
-    def velocidad:Int
-    def barbarosidad: Int
+    def velocidad:Double
+    def barbarosidad: Double
     def tieneArma: Boolean
     def nivelHambre:Double
     def cantidadDeCarga: Double
@@ -59,14 +54,14 @@ package object FestivalDelInviernoV4 {
 
     override def danio: Double = unVikingo.danio + unDragon.danio
 
-    override def barbarosidad: Int = unVikingo.barbarosidad
+    override def barbarosidad: Double = unVikingo.barbarosidad
 
     override def tieneArma: Boolean = unVikingo.item match {
       case Some(Arma(_)) => true
       case _ => false
     }
 
-    override def peso: Int = this.unVikingo.caracteristica.peso
+    override def peso: Double = this.unVikingo.caracteristica.peso
 
     override def aumentarHambrePorPosta(posta: Posta): Jugador = copy(unVikingo = unVikingo.modificarNivelHambre(unVikingo.nivelHambre + 5))
 
@@ -81,21 +76,21 @@ package object FestivalDelInviernoV4 {
 
   case class Vikingo(caracteristica: CaracteristicasVikingo, item: Option[Item], equipo : Option[EquipoVikingo]) extends Jugador {
 
-    override def peso = caracteristica.peso
+    override def peso : Double= caracteristica.peso
 
-    override def barbarosidad = caracteristica.barbarosidad
+    override def barbarosidad : Double = caracteristica.barbarosidad
 
-    override def velocidad = caracteristica.velocidad
+    override def velocidad : Double = caracteristica.velocidad
 
-    override def nivelHambre = caracteristica.nivelHambre
+    override def nivelHambre : Double = caracteristica.nivelHambre
 
     override def cantidadDeCarga: Double = peso / 2 + barbarosidad * 2
 
-    def modificarNivelHambre(nuevoHambre: Double) :Vikingo = copy(caracteristica = caracteristica.copy(nivelHambre = nuevoHambre))
+    def modificarNivelHambre(nuevoHambre: Double) : Vikingo = copy(caracteristica = caracteristica.copy(nivelHambre = nuevoHambre))
 
-    override def danio = {
+    override def danio : Double = {
       item match {
-        case Arma(unDanio) => barbarosidad + unDanio
+        case Some(Arma(unDanio)) => barbarosidad + unDanio
         case None => barbarosidad
       }
     }
@@ -133,13 +128,13 @@ package object FestivalDelInviernoV4 {
 
     def participarEnMiMejorFormaEnUnaPosta(posta: Posta, dragones : List[Dragon]) : Option[Jugador] = {
       var dragonesQuePuedoMontar : List[Dragon] = dragones.filter(_.puedoSerMontadoPor(this))
-      if(!dragonesQuePuedoMontar.isEmpty){
+      if(dragonesQuePuedoMontar.nonEmpty){
         var participantesJinetes : List[Jinete] = dragonesQuePuedoMontar.map(this.montar(_).get)
         var posiblesMejoresParticipantes : List[Jugador] =  this :: participantesJinetes
-        var mejorParticipante : Option[Jugador] = posiblesMejoresParticipantes.sortWith(posta.soyMejorQue(_,_)).filter(posta.puedeParticipar(_)).headOption
-        return mejorParticipante
+        var mejorParticipante : Option[Jugador] = posiblesMejoresParticipantes.filter(posta.puedeParticipar).sortWith(posta.soyMejorQue).headOption
+        mejorParticipante
       }else{
-        return List(this).filter(posta.puedeParticipar(_)).headOption
+        List(this).find(posta.puedeParticipar(_))
       }
     }
 
@@ -150,7 +145,7 @@ package object FestivalDelInviernoV4 {
   // C A R A C T E R I S T I C A S   D E L   V I K I N G O //
   ///////////////////////////////////////////////////////////
 
-  case class CaracteristicasVikingo(peso: Int, velocidad: Int, barbarosidad: Int, nivelHambre: Double)
+  case class CaracteristicasVikingo(peso: Double, velocidad: Double, barbarosidad: Double, nivelHambre: Double)
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////// I T E M S /////////////////////////////////////////////////////////////////////////////////////
@@ -205,7 +200,7 @@ package object FestivalDelInviernoV4 {
   case class NadderMortifero(velocidadBase: Double = 60,
                              peso: Double,
                              condicionesDeMonturaDragon: List[CondicionMontura]) extends Dragon{
-    override def danio :Double =return 150
+    override def danio :Double = 150
   }
 
   /////////////////////////////////////
@@ -215,7 +210,7 @@ package object FestivalDelInviernoV4 {
   case class Gronckle(velocidadBase: Double = 60,
                       peso: Double,
                       condicionesDeMonturaDragon: List[CondicionMontura]) extends Dragon{
-    override def danio= peso*5
+    override def danio : Double = peso*5
   }
 
 
@@ -242,9 +237,7 @@ package object FestivalDelInviernoV4 {
   }
 
   case class RequisitoItem(unItem: Item) extends CondicionMontura {
-    override def cumpleRequisito(unVikingo: Vikingo, unDragon: Dragon): Boolean = {
-      unVikingo.item == unItem
-    }
+    override def cumpleRequisito(unVikingo: Vikingo, unDragon: Dragon): Boolean = unVikingo.item.contains(unItem)
   }
 
   case object RequisitoDanio extends CondicionMontura {
@@ -286,7 +279,7 @@ package object FestivalDelInviernoV4 {
 
     def participarEnPosta(participantes: List[Jugador]):List[Jugador]={
       var participantesLuegoDeCompetir = participantes.map(_.aumentarHambrePorPosta(this))
-      return participantesLuegoDeCompetir.sortWith(soyMejorQue(_,_))
+      participantesLuegoDeCompetir.sortWith(soyMejorQue)
     }
   }
 
@@ -376,14 +369,17 @@ package object FestivalDelInviernoV4 {
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////// T O R N E O ///////////////////////////////////////////////////////////////////////////////////
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  sealed trait Competidores
+  case class Vikingos(vikingos : List[Vikingo]) extends Competidores
+  case class EquiposVikingos(equipos : List[EquipoVikingo]) extends Competidores
 
-  case class Torneo(participantes : List[Participante], dragones : List[Dragon], postas : List[Posta], regla : Regla) {
-    require((regla == ReglasPorEquipos & participantes.isInstanceOf[List[EquipoVikingo]]) | (regla != ReglasPorEquipos & participantes.isInstanceOf[List[Vikingo]]))
+  case class Torneo(competidores : Competidores, dragones : List[Dragon], postas : List[Posta], regla : Regla) {
+    require((regla == ReglasPorEquipos & competidores.isInstanceOf[EquiposVikingos]) | (regla != ReglasPorEquipos & competidores.isInstanceOf[Vikingos]))
 
     def jugar() : Option[Participante] = {
-      participantes match{
-        case participantes : List[EquipoVikingo] => jugarTorneoConEquipos(participantes)
-        case participantes : List[Vikingo] => jugarTorneoSinEquipos(participantes)
+      competidores match{
+        case competidores : EquiposVikingos => jugarTorneoConEquipos(competidores.equipos)
+        case competidores : Vikingos => jugarTorneoSinEquipos(competidores.vikingos)
       }
     }
 
@@ -430,12 +426,12 @@ package object FestivalDelInviernoV4 {
         var equipo : EquipoVikingo = vikingo.equipo.get
         equiposRestantes += equipo
       }
-      equiposRestantes.map(_.reagruparEquipo(unosVikingos))
+      equiposRestantes.foreach(_.reagruparEquipo(unosVikingos))
       equiposRestantes.toList
     }
 
     def obtenerVikingosDespuesDeLaPosta(jugadores : List[Jugador]) : List[Vikingo] = {
-      return jugadores.map(this.obtenerVikingo(_))
+      jugadores.map(this.obtenerVikingo)
     }
 
     def obtenerVikingo(participante : Jugador) : Vikingo = {
@@ -444,6 +440,7 @@ package object FestivalDelInviernoV4 {
         case participante : Vikingo => participante
       }
     }
+
   }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -468,7 +465,7 @@ package object FestivalDelInviernoV4 {
         }
         vikingo.participarEnMiMejorFormaEnUnaPosta(posta, dragonesRestantes)
       }
-      return participantes.filter(_.isEmpty).map(_.get)
+      participantes.filter(_.isEmpty).map(_.get)
     }
 
     def quienesPasanALaSiguienteRonda(participantes: List[Jugador]) : List[Jugador]
@@ -493,7 +490,7 @@ package object FestivalDelInviernoV4 {
   ///////// E S T A N D A R ///////////
   /////////////////////////////////////
 
-  case class ReglasEstandar() extends Regla{
+  class ReglasEstandar extends Regla{
 
     override def quienesPasanALaSiguienteRonda(participantes: List[Jugador]): List[Jugador] = {
       participantes.take(participantes.length / 2)
@@ -535,7 +532,7 @@ package object FestivalDelInviernoV4 {
   case class ReglasConVeto(condicionParaLosDragones : CondicionDragon) extends ReglasEstandar{
     override def prepararParaLaPosta(posta: Posta, vikingos: List[Vikingo], dragones: List[Dragon]): List[Jugador] = {
       val dragonesQueCumplenCondicion = dragones.filter(condicionParaLosDragones(_))
-      super.prepararParaLaPosta(posta,vikingos,dragones)
+      super.prepararParaLaPosta(posta,vikingos,dragonesQueCumplenCondicion)
     }
   }
 
