@@ -2,7 +2,7 @@ name := "TP-TADP-1C-2017-FestivalDeInvierno"
 
 version := "1.0"
 
-scalaVersion := "2.12.1"
+scalaVersion := "2.12.2"
 
 libraryDependencies ++= Seq(
   "org.scala-js" %% "scalajs-test-interface" % "0.6.14",
