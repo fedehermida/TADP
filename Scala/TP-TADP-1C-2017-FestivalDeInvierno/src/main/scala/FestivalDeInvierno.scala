@@ -153,7 +153,7 @@ package object FestivalDelInvierno {
       unDragon.puedoSerMontadoPor(this)
     }
 
-    
+
     def participarEnMiMejorFormaEnUnaPosta(posta: Posta,dragones : List[Dragon]) : Option[Jugador] = {
       (this :: dragones.flatMap(montar(_))).filter(posta.puedeParticipar(_))
         .sortWith(posta.soyMejorQue)
@@ -184,8 +184,15 @@ package object FestivalDelInvierno {
   case object SistemaDeVuelo extends Item
 
   case class Comestible(disminuirHambre: Double) extends Item{
-    override def aplicarEfecto(vikingo: Vikingo): Vikingo = vikingo.modificarNivelHambre(vikingo.nivelHambre - disminuirHambre)
-  }
+    override def aplicarEfecto(vikingo: Vikingo): Vikingo =
+      if (vikingo.nivelHambre-disminuirHambre>0) {
+        vikingo.modificarNivelHambre(vikingo.nivelHambre - disminuirHambre)
+      }else{
+        vikingo.modificarNivelHambre(0)
+      }
+      }
+
+
 
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -446,10 +453,10 @@ package object FestivalDelInvierno {
       val vikingosFinalistas : List[Vikingo] = obtenerVikingosDespuesDeLaPosta(
         regla.quienesPasanALaSiguienteRonda(
           unaPosta.participarEnPosta(
-              regla.prepararParaUnaPosta(unaPosta, competidores.vikingos, unosDragones)
-            )
+            regla.prepararParaUnaPosta(unaPosta, competidores.vikingos, unosDragones)
           )
         )
+      )
 
       val finalistas : List[Participante] = funcionReagrupar.foldLeft(vikingosFinalistas : List[Participante])( (_,funcion) => funcion(vikingosFinalistas))
 
