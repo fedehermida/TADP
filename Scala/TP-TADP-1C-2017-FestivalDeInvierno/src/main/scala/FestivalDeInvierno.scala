@@ -18,9 +18,6 @@ package object FestivalDelInvierno {
   class EquipoVikingo() extends Participante{
     var vikingos : List[Vikingo] = List()
 
-    /*def reagruparEquipo(unosVikingos : List[Vikingo]) : Unit = {
-      vikingos = unosVikingos.filter(vikingos.contains)
-    }*/
     def reagruparEquipo(unosVikingos : List[Vikingo]) : EquipoVikingo = {
       vikingos = vikingos.filter(unosVikingos.contains)
       this
@@ -48,6 +45,8 @@ package object FestivalDelInvierno {
     def nivelHambre:Double
     def cantidadDeCarga: Double
     def aumentarHambrePorPosta(posta: Posta): Jugador
+    def usarItem : Jugador
+    def puedoCompetir : Boolean
 
     def esMejorQue(participante:Jugador,posta:Posta):Boolean={
       posta.soyMejorQue(this,participante)
@@ -60,6 +59,10 @@ package object FestivalDelInvierno {
   ///////////////////
 
   case class Jinete(unVikingo: Vikingo, unDragon: Dragon) extends Jugador {
+
+    def usarItem : Jinete = copy(unVikingo = unVikingo.usarItem)
+
+    override def puedoCompetir: Boolean = unVikingo.puedoCompetir
 
     def velocidad: Double = unDragon.velocidadDeVuelo - unVikingo.peso
 
@@ -87,25 +90,34 @@ package object FestivalDelInvierno {
   // V I K I N G O //
   ///////////////////
 
-  case class Vikingo(caracteristica: CaracteristicasVikingo, item: Option[Item], equipo : Option[EquipoVikingo]) extends Jugador {
+  type CondicionParaCompetir = (Vikingo => Boolean)
 
-    override def peso : Double= caracteristica.peso
+  case class Vikingo(caracteristica: CaracteristicasVikingo, item: Option[Item], equipo : Option[EquipoVikingo], condicionesParaCompetir : List[CondicionParaCompetir]) extends Jugador {
 
-    override def barbarosidad : Double = caracteristica.barbarosidad
+    override def peso: Double = caracteristica.peso
 
-    override def velocidad : Double = caracteristica.velocidad
+    override def barbarosidad: Double = caracteristica.barbarosidad
 
-    override def nivelHambre : Double = caracteristica.nivelHambre
+    override def velocidad: Double = caracteristica.velocidad
+
+    override def nivelHambre: Double = caracteristica.nivelHambre
 
     override def cantidadDeCarga: Double = peso / 2 + barbarosidad * 2
 
-    def equipo(unEquipo : EquipoVikingo): Vikingo ={
+    def puedoCompetir: Boolean = condicionesParaCompetir.foldLeft(true)((semilla, condicion) => semilla & condicion(this))
+
+    def usarItem: Vikingo = {
+      //Try(item.get.aplicarEfecto(this)).getOrElse(this)
+      item.foldLeft(this)((_,unItem) => unItem.aplicarEfecto(this))
+    }
+
+    def equipo(unEquipo: EquipoVikingo): Vikingo = {
       copy(equipo = Some(unEquipo))
     }
 
-    def modificarNivelHambre(nuevoHambre: Double) : Vikingo = copy(caracteristica = caracteristica.copy(nivelHambre = nuevoHambre))
+    def modificarNivelHambre(nuevoHambre: Double): Vikingo = copy(caracteristica = caracteristica.copy(nivelHambre = nuevoHambre))
 
-    override def danio : Double = {
+    override def danio: Double = {
       item match {
         case Some(Arma(unDanio)) => barbarosidad + unDanio
         case _ => barbarosidad
@@ -129,11 +141,10 @@ package object FestivalDelInvierno {
 
 
     override def aumentarHambrePorPosta(posta: Posta): Jugador = {
-      posta match
-      {
-        case Pesca(_) => this.copy(caracteristica = caracteristica.copy(nivelHambre=nivelHambre+5))
-        case Combate(_) => this.copy(caracteristica = caracteristica.copy(nivelHambre=nivelHambre+10))
-        case Carrera(cantidadDeKilometros, _) => this.copy(caracteristica = caracteristica.copy(nivelHambre=nivelHambre+cantidadDeKilometros))
+      posta match {
+        case Pesca(_) => this.copy(caracteristica = caracteristica.copy(nivelHambre = nivelHambre + 5))
+        case Combate(_) => this.copy(caracteristica = caracteristica.copy(nivelHambre = nivelHambre + 10))
+        case Carrera(cantidadDeKilometros, _) => this.copy(caracteristica = caracteristica.copy(nivelHambre = nivelHambre + cantidadDeKilometros))
       }
     }
 
@@ -143,20 +154,28 @@ package object FestivalDelInvierno {
     }
 
 
-    def participarEnMiMejorFormaEnUnaPosta(posta: Posta, dragones : List[Dragon]) : Option[Jugador] = {
-      var dragonesQuePuedoMontar : List[Dragon] = dragones.filter(_.puedoSerMontadoPor(this))
-      if(dragonesQuePuedoMontar.nonEmpty){
-        var participantesJinetes : List[Jinete] = dragonesQuePuedoMontar.map(this.montar(_).get)
-        var posiblesMejoresParticipantes : List[Jugador] =  this :: participantesJinetes
-        var mejorParticipante : Option[Jugador] = posiblesMejoresParticipantes.filter(posta.puedeParticipar).sortWith(posta.soyMejorQue).headOption
-        mejorParticipante
-      }else{
-        List(this).find(posta.puedeParticipar(_))
-      }
+    //    def participarEnMiMejorFormaEnUnaPosta(posta: Posta, dragones: List[Dragon]): Option[Jugador] = {
+    //      if (puedoCompetir) {
+    //        var dragonesQuePuedoMontar: List[Dragon] = dragones.filter(_.puedoSerMontadoPor(this))
+    //        if (dragonesQuePuedoMontar.nonEmpty) {
+    //          var participantesJinetes: List[Jinete] = dragonesQuePuedoMontar.map(this.montar(_).get)
+    //          var posiblesMejoresParticipantes: List[Jugador] = this :: participantesJinetes
+    //          var mejorParticipante: Option[Jugador] = posiblesMejoresParticipantes.filter(posta.puedeParticipar).sortWith(posta.soyMejorQue).headOption
+    //          mejorParticipante
+    //        } else {
+    //          List(this).find(posta.puedeParticipar(_))
+    //        }
+    //      } else {
+    //        None
+    //      }
+    //    }
+    def participarEnMiMejorFormaEnUnaPosta(posta: Posta,dragones : List[Dragon]) : Option[Jugador] = {
+      (this :: dragones.flatMap(montar(_))).filter(posta.puedeParticipar(_))
+        .sortWith(posta.soyMejorQue)
+        .headOption
     }
 
   }
-
 
   ///////////////////////////////////////////////////////////
   // C A R A C T E R I S T I C A S   D E L   V I K I N G O //
@@ -169,13 +188,19 @@ package object FestivalDelInvierno {
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-  trait Item
+  trait Item{
+    def aplicarEfecto(vikingo: Vikingo): Vikingo ={
+      vikingo
+    }
+  }
 
   case class Arma(unDanio: Int) extends Item
 
   case object SistemaDeVuelo extends Item
 
-  case class Comestible(disminuirHambre: Double) extends Item
+  case class Comestible(disminuirHambre: Double) extends Item{
+    override def aplicarEfecto(vikingo: Vikingo): Vikingo = vikingo.modificarNivelHambre(vikingo.nivelHambre - disminuirHambre)
+  }
 
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -296,7 +321,7 @@ package object FestivalDelInvierno {
 
     def participarEnPosta(jugadores: List[Jugador]):List[Jugador]={
       var jugadoresLuegoDeCompetir = jugadores.map(_.aumentarHambrePorPosta(this))
-      jugadoresLuegoDeCompetir.sortWith(soyMejorQue)
+      jugadoresLuegoDeCompetir.sortWith(soyMejorQue).map(_.usarItem)
     }
   }
 
@@ -308,14 +333,8 @@ package object FestivalDelInvierno {
   case class Pesca(pesoMinimoALevantar:Option[Int]) extends Posta{
 
     override def puedeParticipar(jugador:Jugador) :Boolean={
-      if(super.puedeParticipar(jugador)){
-        pesoMinimoALevantar match{
-          case Some(pesoMinimo) => jugador.peso > pesoMinimo
-          case None => true
-        }
-      }else{
-        false
-      }
+      super.puedeParticipar(jugador) &&
+        pesoMinimoALevantar.fold(true)(pesoMinimo => jugador.peso > pesoMinimo)
     }
 
     override def soyMejorQue(jugador: Jugador, otroJugador : Jugador): Boolean = {
@@ -342,7 +361,7 @@ package object FestivalDelInvierno {
     override def cuantoHambreAumento(jugador: Jugador): Int =
       jugador match {
         case Jinete(_,_)=> 5
-        case Vikingo(_,_,_)=> 10
+        case Vikingo(_,_,_,_)=> 10
       }
   }
 
@@ -354,19 +373,10 @@ package object FestivalDelInvierno {
 
   case class Carrera(cantidadDeKilometros:Int,requiereMontura:Boolean) extends Posta{
 
-    override def puedeParticipar(jugador: Jugador): Boolean ={
-
-      if(super.puedeParticipar(jugador)) {
-        if (requiereMontura) {
-          jugador match {
-            case Jinete(_, _) => true
-            case Vikingo(_,_,_) => false
-          }
-        }else{
-          true
-        }
-      }else{
-        false
+    override def puedeParticipar(jugador: Jugador): Boolean = {
+      jugador match {
+        case Jinete(_, _) => super.puedeParticipar(jugador)
+        case Vikingo(_, _, _,_) => (!requiereMontura) & super.puedeParticipar(jugador)
       }
     }
 
@@ -377,7 +387,7 @@ package object FestivalDelInvierno {
     override def cuantoHambreAumento(jugador: Jugador): Int ={
       jugador match {
         case Jinete(_,_) => 5
-        case Vikingo(_,_,_) => cantidadDeKilometros
+        case Vikingo(_,_,_,_) => cantidadDeKilometros
       }
     }
 
@@ -386,78 +396,41 @@ package object FestivalDelInvierno {
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////// T O R N E O ///////////////////////////////////////////////////////////////////////////////////
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  sealed trait Competidores
+  sealed trait Competidores{
+    def vikingos : List[Vikingo]
+  }
+
   case class Vikingos(vikingos : List[Vikingo]) extends Competidores
-  case class EquiposVikingos(equipos : List[EquipoVikingo]) extends Competidores
+
+  case class EquiposVikingos(equipos : List[EquipoVikingo]) extends Competidores{
+    override def vikingos: List[Vikingo] = equipos.flatMap(_.vikingos)
+  }
 
   case class Torneo(competidores : Competidores, dragones : List[Dragon], postas : List[Posta], regla : Regla) {
-    require((regla.isInstanceOf[ReglasPorEquipos] & competidores.isInstanceOf[EquiposVikingos]) | (regla != ReglasPorEquipos & competidores.isInstanceOf[Vikingos]))
+    require((regla.isInstanceOf[ReglasPorEquipos] & competidores.isInstanceOf[EquiposVikingos]) | (!regla.isInstanceOf[ReglasPorEquipos] & competidores.isInstanceOf[Vikingos]))
 
     def jugar() : Option[Participante] = {
-      competidores match{
-        case competidores : EquiposVikingos => jugarTorneoConEquipos(competidores.equipos)
-        case competidores : Vikingos => jugarTorneoSinEquipos(competidores.vikingos)
+
+      var funcionReagrupar : Option[List[Vikingo] => List[EquipoVikingo]] = competidores match{
+        case competidores : Vikingos => None
+        case competidores : EquiposVikingos => Some(reagruparEquipos)
       }
-    }
 
-
-    def jugarTorneoSinEquipos(vikingos : List[Vikingo]) : Option[Participante] = {
-      val finalistas : List[Vikingo] = postas.foldLeft(vikingos)((semilla : List[Vikingo], posta : Posta) =>
-        jugarRonda(posta,semilla,dragones) match {
+      val finalistas : Competidores = postas.foldLeft(competidores)((semilla, posta : Posta) =>
+        jugarRondaTorneo(posta,semilla,dragones,funcionReagrupar) match {
           case (_, 0) => return None
           case (jugadores, 1) => return jugadores.headOption
-          case (jugadores,_)  => jugadores
+          case (jugadores,_)  => jugadores match {
+            case (jugador : Vikingo) :: _ => Vikingos(jugadores.asInstanceOf[List[Vikingo]])
+            case (jugador : EquipoVikingo) :: _ => EquiposVikingos(jugadores.asInstanceOf[List[EquipoVikingo]])
+          }
         }
       )
-      regla.obtenerGanador(finalistas)
+
+      regla.obtenerGanador(funcionReagrupar.foldLeft(finalistas.vikingos)( (_,funcion) => (funcion(finalistas.vikingos)).map(_.vikingos.head)))
+
     }
 
-
-    def jugarRonda(unaPosta : Posta, unosVikingos : List[Vikingo], unosDragones : List[Dragon]): (List[Vikingo], Int) ={
-      val finalistas = obtenerVikingosDespuesDeLaPosta(
-        regla.quienesPasanALaSiguienteRonda(
-          unaPosta.participarEnPosta(regla.prepararParaUnaPosta(unaPosta,unosVikingos,unosDragones))
-        )
-      )
-      (finalistas,finalistas.length)
-    }
-
-
-    def jugarTorneoConEquipos(unosEquipos : List[EquipoVikingo]) : Option[Participante] = {
-      val finalistas : List[EquipoVikingo] = postas.foldLeft(unosEquipos)((semilla : List[EquipoVikingo], posta : Posta) =>
-        jugarRondaConEquipos(posta,semilla,dragones) match {
-          case (_, 0) => return None
-          case (jugadores, 1) => return jugadores.headOption
-          case (jugadores,_)  => jugadores
-        }
-      )
-      regla.obtenerGanador(finalistas.map(_.vikingos).head)
-    }
-
-
-    def jugarRondaConEquipos(unaPosta : Posta, unosEquipos : List[EquipoVikingo], unosDragones : List[Dragon]): (List[EquipoVikingo], Int) ={
-      val finalistas = reagruparEquipos(
-        obtenerVikingosDespuesDeLaPosta(
-          regla.quienesPasanALaSiguienteRonda(
-            unaPosta.participarEnPosta(regla.prepararParaUnaPosta(unaPosta,unosEquipos.flatMap(_.vikingos),unosDragones))
-          )
-        )
-      )
-      (finalistas,finalistas.length)
-    }
-
-
-    /*def reagruparEquipos(unosVikingos : List[Vikingo]) : List[EquipoVikingo] = {
-      val equipos = unosVikingos.foldLeft(List() : List[EquipoVikingo])((semilla : List[EquipoVikingo], unVikingo : Vikingo) =>
-        if(semilla.contains(unVikingo.equipo.get)){
-          semilla
-        }else{
-          semilla :+ unVikingo.equipo.get
-        }
-      )
-      equipos.foreach(_.reagruparEquipo(unosVikingos))
-      equipos
-    }*/
 
     def reagruparEquipos(unosVikingos : List[Vikingo]) : List[EquipoVikingo] = {
       val equipos = unosVikingos.foldLeft(List() : List[EquipoVikingo])((semilla : List[EquipoVikingo], unVikingo : Vikingo) =>
@@ -471,13 +444,6 @@ package object FestivalDelInvierno {
     }
 
 
-
-
-
-
-
-
-
     def obtenerVikingosDespuesDeLaPosta(jugadores : List[Jugador]) : List[Vikingo] = {
       jugadores.map(this.obtenerVikingo)
     }
@@ -488,6 +454,23 @@ package object FestivalDelInvierno {
         case participante : Vikingo => participante
       }
     }
+
+
+
+    def jugarRondaTorneo(unaPosta : Posta, competidores: Competidores, unosDragones : List[Dragon], funcionReagrupar : Option[List[Vikingo] => List[EquipoVikingo]]/*, funcionVikingosDeEquipos : Option[ EquipoVikingo => List[Vikingo]]*/) : (List[Participante], Int) ={
+      val vikingosFinalistas : List[Vikingo] = obtenerVikingosDespuesDeLaPosta(
+        regla.quienesPasanALaSiguienteRonda(
+          unaPosta.participarEnPosta(
+              regla.prepararParaUnaPosta(unaPosta, competidores.vikingos, unosDragones)
+            )
+          )
+        )
+
+      val finalistas : List[Participante] = funcionReagrupar.foldLeft(vikingosFinalistas : List[Participante])( (_,funcion) => funcion(vikingosFinalistas))
+
+      (finalistas,finalistas.length)
+    }
+
 
   }
 
@@ -515,7 +498,7 @@ package object FestivalDelInvierno {
     def prepararVikingoParaUnaPosta(unVikingo: Vikingo, unaPosta : Posta): Option[Jugador] ={
       val vikingoPreparado = unVikingo.participarEnMiMejorFormaEnUnaPosta(unaPosta,dragonesRestantes)
       vikingoPreparado match {
-        case Some(Vikingo(_,_,_)) => ;
+        case Some(Vikingo(_,_,_,_)) => ;
         case Some(Jinete(_,unDragon)) => dragonesRestantes = dragonesRestantes diff List(unDragon)
         case None => ;
       }
