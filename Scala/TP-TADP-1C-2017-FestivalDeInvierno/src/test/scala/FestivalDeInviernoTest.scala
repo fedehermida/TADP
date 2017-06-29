@@ -1,6 +1,3 @@
-/**
-  * Created by leonardo on 19/06/17.
-  */
 import org.scalatest.FunSuite
 import FestivalDelInvierno._
 
@@ -106,6 +103,38 @@ class FestivalDeInviernoTest extends FunSuite {
     var roco2 = FuriaNocturna(1, 3, 15, List(RequisitoBarbarosidad(1)))
     var torneo = Torneo(EquiposVikingos(List(equipoVikingo,equipoVikingo1)), List(roco, roco2), List(posta, posta3), ReglasPorEquipos())
     assertResult(torneo.jugar())(Some(equipoVikingo1))
+
+  }
+
+  test("Vikingos poco deportivos"){
+    def hambreMenorA(vikingo: Vikingo) : Boolean= vikingo.nivelHambre<50
+    var patapez=Vikingo(CaracteristicasVikingo(12,3,4,0),Some(Comestible(40)),None,List(hambreMenorA))
+    var posta=Pesca(Some(10))
+    assertResult(patapez.participarEnMiMejorFormaEnUnaPosta(posta,List()))(Some(patapez))
+  }
+
+  test("Vikingos poco deportivos no pueden competir"){
+    def hambreMenorA(vikingo: Vikingo) : Boolean= vikingo.nivelHambre<50
+    var patapez=Vikingo(CaracteristicasVikingo(12,3,4,60),Some(Comestible(40)),None,List(hambreMenorA))
+    var posta=Pesca(Some(10))
+    assert(!(patapez.puedoCompetir))
+  }
+
+  test("Vikingos poco deportivos pueden competir"){
+    def hambreMenorA(vikingo: Vikingo) : Boolean= vikingo.nivelHambre<50
+    var patapez=Vikingo(CaracteristicasVikingo(12,3,4,20),Some(Comestible(40)),None,List(hambreMenorA))
+    var posta=Pesca(Some(10))
+    assert(patapez.puedoCompetir)
+  }
+
+  test("Vikingos poco deportivos comen despues de cada posta"){
+    def hambreMenorA(vikingo: Vikingo) : Boolean= vikingo.nivelHambre<50
+    var patapez=Vikingo(CaracteristicasVikingo(40,3,30,20),Some(Comestible(40)),None,List(hambreMenorA))
+    var posta=Pesca(Some(10))
+    var vikingo2 = Vikingo(CaracteristicasVikingo(15,2,9,0),Some(SistemaDeVuelo),None,List())
+    var torneo=Torneo(Vikingos(List(patapez,vikingo2)),List(),List(posta),ReglasDeEliminacion(1))
+
+    assertResult(torneo.jugar)(Some(patapez.modificarNivelHambre(0)))
 
   }
 
