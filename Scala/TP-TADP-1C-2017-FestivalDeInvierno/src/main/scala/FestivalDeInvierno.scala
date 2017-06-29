@@ -153,22 +153,7 @@ package object FestivalDelInvierno {
       unDragon.puedoSerMontadoPor(this)
     }
 
-
-    //    def participarEnMiMejorFormaEnUnaPosta(posta: Posta, dragones: List[Dragon]): Option[Jugador] = {
-    //      if (puedoCompetir) {
-    //        var dragonesQuePuedoMontar: List[Dragon] = dragones.filter(_.puedoSerMontadoPor(this))
-    //        if (dragonesQuePuedoMontar.nonEmpty) {
-    //          var participantesJinetes: List[Jinete] = dragonesQuePuedoMontar.map(this.montar(_).get)
-    //          var posiblesMejoresParticipantes: List[Jugador] = this :: participantesJinetes
-    //          var mejorParticipante: Option[Jugador] = posiblesMejoresParticipantes.filter(posta.puedeParticipar).sortWith(posta.soyMejorQue).headOption
-    //          mejorParticipante
-    //        } else {
-    //          List(this).find(posta.puedeParticipar(_))
-    //        }
-    //      } else {
-    //        None
-    //      }
-    //    }
+    
     def participarEnMiMejorFormaEnUnaPosta(posta: Posta,dragones : List[Dragon]) : Option[Jugador] = {
       (this :: dragones.flatMap(montar(_))).filter(posta.puedeParticipar(_))
         .sortWith(posta.soyMejorQue)
