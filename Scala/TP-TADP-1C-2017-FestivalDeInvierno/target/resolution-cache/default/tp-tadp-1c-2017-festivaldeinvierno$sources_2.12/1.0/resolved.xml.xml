@@ -4,7 +4,7 @@
 		module="tp-tadp-1c-2017-festivaldeinvierno$sources_2.12"
 		revision="1.0"
 		status="integration"
-		publication="20170624115315"
+		publication="20170629202034"
 	/>
 	<configurations>
 		<conf name="compile" visibility="public" description=""/>
