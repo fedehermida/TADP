@@ -378,7 +378,7 @@ package object FestivalDelInvierno {
 
     def reagruparEquipos(unosEquipos : List[List[Vikingo]], unosVikingos : List[Vikingo]) : List[List[Vikingo]] = {
       val equipos = unosEquipos.foldLeft(List() : List[List[Vikingo]])((semilla : List[List[Vikingo]], equipo : List[Vikingo]) =>
-        (semilla :+ (equipo.filter(unVikingo => unosVikingos.exists(otroVikingo=>unVikingo.nombre==otroVikingo.nombre))))
+        (semilla :+ (unosVikingos.filter(unVikingo => equipo.exists(otroVikingo=>unVikingo.nombre==otroVikingo.nombre))))
       )
       equipos.filter(_.nonEmpty)
     }

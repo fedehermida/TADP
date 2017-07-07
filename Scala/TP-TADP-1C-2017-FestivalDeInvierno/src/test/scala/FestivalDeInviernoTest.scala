@@ -1,8 +1,7 @@
 import org.scalatest.FunSuite
-import org.scalatest.FunSuite
 import FestivalDelInvierno._
 
-class FestivalDeInviernoTest extends FunSuite {
+class FestivalDeInvierno extends FunSuite {
 
   test("Aumentar Hambre Por Posta"){
     var vikingo = Vikingo("Willy",CaracteristicasVikingo(11,2,5,0),None,List())
@@ -101,7 +100,7 @@ class FestivalDeInviernoTest extends FunSuite {
     var roco = FuriaNocturna(1, 3, 15, List(RequisitoBarbarosidad(1)))
     var roco2 = FuriaNocturna(1, 3, 15, List(RequisitoBarbarosidad(1)))
     var torneo = Torneo(List(roco, roco2), List(posta, posta3))
-    assertResult(torneo.jugar(List(equipoVikingo,equipoVikingo1), ReglasPorEquipos()))(Some(equipoVikingo1))
+    assertResult(torneo.jugar(List(equipoVikingo,equipoVikingo1), ReglasPorEquipos()))(Some(List(Vikingo("Willy3",CaracteristicasVikingo(13.0,2.0,7.0,15.0),None,List()), Vikingo("Willy4",CaracteristicasVikingo(14.0,2.0,8.0,15.0),None,List()))))
 
   }
 
