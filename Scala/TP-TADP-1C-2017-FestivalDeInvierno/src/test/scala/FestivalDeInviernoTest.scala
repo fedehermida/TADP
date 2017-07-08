@@ -88,11 +88,11 @@ class FestivalDeInvierno extends FunSuite {
 
   }
 
-  test("Torneo Por Equipos") {
+  test("Torneo Por Equipos Que Obtiene Ganador Antes De Jugar Todas Las Postas") {
     var vikingo = Vikingo("Willy",CaracteristicasVikingo(15, 2, 5, 0), None, List())
-    var vikingo2 = Vikingo("Willy2",CaracteristicasVikingo(12, 2, 6, 0), None, List())
-    var vikingo3 = Vikingo("Willy3",CaracteristicasVikingo(13, 2, 7, 0), None, List())
-    var vikingo4 = Vikingo("Willy4",CaracteristicasVikingo(14, 2, 8, 0), None, List())
+    var vikingo2 = Vikingo("Willy2",CaracteristicasVikingo(12, 3, 6, 0), None, List())
+    var vikingo3 = Vikingo("Willy3",CaracteristicasVikingo(13, 19, 7, 0), None, List())
+    var vikingo4 = Vikingo("Willy4",CaracteristicasVikingo(14, 20, 8, 0), None, List())
     var equipoVikingo = List(vikingo,vikingo2)
     var equipoVikingo1 = List(vikingo3,vikingo4)
     var posta = Carrera(15, false)
@@ -100,9 +100,27 @@ class FestivalDeInvierno extends FunSuite {
     var roco = FuriaNocturna(1, 3, 15, List(RequisitoBarbarosidad(1)))
     var roco2 = FuriaNocturna(1, 3, 15, List(RequisitoBarbarosidad(1)))
     var torneo = Torneo(List(roco, roco2), List(posta, posta3))
-    assertResult(torneo.jugar(List(equipoVikingo,equipoVikingo1), ReglasPorEquipos()))(Some(List(Vikingo("Willy3",CaracteristicasVikingo(13.0,2.0,7.0,15.0),None,List()), Vikingo("Willy4",CaracteristicasVikingo(14.0,2.0,8.0,15.0),None,List()))))
+    assertResult(torneo.jugar(List(equipoVikingo,equipoVikingo1), ReglasPorEquipos()))(Some(List(Vikingo("Willy4",CaracteristicasVikingo(14.0,20.0,8.0,15.0),None,List()), Vikingo("Willy3",CaracteristicasVikingo(13.0,19.0,7.0,15.0),None,List()))))
 
   }
+
+
+  test("Torneo Por Equipos Que Obtiene Ganador Despues De Jugar Todas Las Postas") {
+    var vikingo = Vikingo("Willy",CaracteristicasVikingo(15, 2, 5, 0), None, List())
+    var vikingo2 = Vikingo("Willy2",CaracteristicasVikingo(12, 19, 6, 0), None, List())
+    var vikingo3 = Vikingo("Willy3",CaracteristicasVikingo(13, 9, 7, 0), None, List())
+    var vikingo4 = Vikingo("Willy4",CaracteristicasVikingo(14, 20, 8, 0), None, List())
+    var equipoVikingo = List(vikingo,vikingo2)
+    var equipoVikingo1 = List(vikingo3,vikingo4)
+    var posta = Carrera(15, false)
+    var posta3 = Pesca(Some(10))
+    var roco = FuriaNocturna(1, 3, 15, List(RequisitoBarbarosidad(1)))
+    var roco2 = FuriaNocturna(1, 3, 15, List(RequisitoBarbarosidad(1)))
+    var torneo = Torneo(List(roco, roco2), List(posta, posta3))
+    assertResult(torneo.jugar(List(equipoVikingo,equipoVikingo1), ReglasPorEquipos()))(Some(List(Vikingo("Willy4",CaracteristicasVikingo(14.0,20.0,8.0,20.0),None,List()))))
+
+  }
+
 
   test("Vikingos poco deportivos"){
     def hambreMenorA(vikingo: Vikingo) : Boolean= vikingo.nivelHambre<50

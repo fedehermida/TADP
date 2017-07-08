@@ -369,10 +369,11 @@ package object FestivalDelInvierno {
     def jugar(equipos : List[List[Vikingo]], regla : ReglasPorEquipos): Option[List[Vikingo]] ={
       val finalistas : List[List[Vikingo]] = postas.foldLeft(equipos) { (semilla: List[List[Vikingo]], posta: Posta) =>
         val jugadoresRestantes = jugarRonda(posta, semilla.flatten, dragones, regla)
-        jugadoresRestantes.length match {
+        val equiposRestantes = reagruparEquipos(semilla,jugadoresRestantes)
+        equiposRestantes.length match {
           case 0 => return None
-          case 1 => return reagruparEquipos(semilla,jugadoresRestantes).headOption
-          case _ => reagruparEquipos(semilla,jugadoresRestantes)
+          case 1 => return equiposRestantes.headOption
+          case _ => equiposRestantes
         }
       }
       regla.obtenerGanador(finalistas)
@@ -447,7 +448,7 @@ package object FestivalDelInvierno {
   case class ReglasPorEquipos() extends Regla{
 
     override def quienesPasanALaSiguienteRonda(jugadores: List[Jugador]): List[Jugador] = {
-      jugadores.drop(jugadores.length / 2)
+      jugadores.dropRight(jugadores.length / 2)
     }
 
     def obtenerGanador(equipos : List[List[Vikingo]]): Option[List[Vikingo]] = Random.shuffle(equipos).headOption
