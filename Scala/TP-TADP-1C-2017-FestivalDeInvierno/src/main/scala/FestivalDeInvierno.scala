@@ -355,24 +355,26 @@ package object FestivalDelInvierno {
 
 
     def jugar(vikingos : List[Vikingo], regla : ReglasEstandar) : Option[Vikingo] = {
-      val finalistas2 : List[Vikingo] = postas.foldLeft(vikingos)((semilla : List[Vikingo], posta : Posta) =>
-        jugarRonda(posta,semilla,dragones,regla) match {
-          case (_, 0) => return None
-          case (jugadores, 1) => return jugadores.headOption
-          case (jugadores,_)  => jugadores
+      val finalistas2 : List[Vikingo] = postas.foldLeft(vikingos) { (semilla: List[Vikingo], posta: Posta) =>
+        val jugadoresRestantes = jugarRonda(posta, semilla, dragones, regla)
+        jugadoresRestantes.length match {
+          case 0 => return None
+          case 1 => return jugadoresRestantes.headOption
+          case _ => jugadoresRestantes
         }
-      )
+      }
       regla.obtenerGanador(finalistas2)
     }
 
     def jugar(equipos : List[List[Vikingo]], regla : ReglasPorEquipos): Option[List[Vikingo]] ={
-      val finalistas : List[List[Vikingo]] = postas.foldLeft(equipos)((semilla : List[List[Vikingo]], posta : Posta) =>
-        jugarRondaConEquipos(posta,semilla,dragones,regla) match {
-          case (_, 0) => return None
-          case (jugadores, 1) => return jugadores.headOption
-          case (jugadores,_)  => jugadores
+      val finalistas : List[List[Vikingo]] = postas.foldLeft(equipos) { (semilla: List[List[Vikingo]], posta: Posta) =>
+        val jugadoresRestantes = jugarRonda(posta, semilla.flatten, dragones, regla)
+        jugadoresRestantes.length match {
+          case 0 => return None
+          case 1 => return reagruparEquipos(semilla,jugadoresRestantes).headOption
+          case _ => reagruparEquipos(semilla,jugadoresRestantes)
         }
-      )
+      }
       regla.obtenerGanador(finalistas)
     }
 
@@ -395,24 +397,12 @@ package object FestivalDelInvierno {
       }
     }
 
-    def jugarRondaConEquipos(unaPosta : Posta, unosEquipos : List[List[Vikingo]], unosDragones : List[Dragon], regla : ReglasPorEquipos) : (List[List[Vikingo]], Int) ={
-      val finalistas = reagruparEquipos(unosEquipos,
-        obtenerVikingosDespuesDeLaPosta(
-          regla.quienesPasanALaSiguienteRonda(
-            unaPosta.participarEnPosta(regla.prepararParaUnaPosta(unaPosta, unosEquipos.flatten, unosDragones))
-          )
-        )
-      )
-      (finalistas,finalistas.length)
-    }
-
-    def jugarRonda(unaPosta : Posta, unosVikingos : List[Vikingo], unosDragones : List[Dragon], regla : ReglasEstandar): (List[Vikingo], Int) = {
-      val finalistas = obtenerVikingosDespuesDeLaPosta(
+    def jugarRonda(unaPosta : Posta, unosVikingos : List[Vikingo], unosDragones : List[Dragon], regla : Regla): List[Vikingo] = {
+      obtenerVikingosDespuesDeLaPosta(
         regla.quienesPasanALaSiguienteRonda(
           unaPosta.participarEnPosta(regla.prepararParaUnaPosta(unaPosta,unosVikingos,unosDragones))
         )
       )
-      (finalistas,finalistas.length)
     }
 
 
