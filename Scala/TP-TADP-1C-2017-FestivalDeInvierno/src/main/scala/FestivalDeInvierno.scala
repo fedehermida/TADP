@@ -1,15 +1,16 @@
 import scala.util.Random
 
-/**
-  * Created by Julian on 22/06/2017.
-  */
 package object FestivalDelInvierno {
 
-  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  /////////////////////////////////////////////////////// J U G A D O R E S //////////////////////////////////////////////////////////////////////////////
-  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  ////////////////////////////////
+  ////// J U G A D O R E S ///////
+  ////////////////////////////////
 
-  trait Jugador {
+  sealed trait Participante
+
+  case class EquipoVikingo(vikingos:List[Vikingo]) extends Participante
+
+  trait Jugador extends Participante{
     def peso:Double
     def danio:Double
     def velocidad:Double
@@ -347,45 +348,8 @@ package object FestivalDelInvierno {
 
   }
 
-  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  //////////////////////////////////////////////////////// T O R N E O ///////////////////////////////////////////////////////////////////////////////////
-  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-  case class Torneo(dragones : List[Dragon], postas : List[Posta]) {
-
-
-    def jugar(vikingos : List[Vikingo], regla : ReglasEstandar) : Option[Vikingo] = {
-      val finalistas2 : List[Vikingo] = postas.foldLeft(vikingos) { (semilla: List[Vikingo], posta: Posta) =>
-        val jugadoresRestantes = jugarRonda(posta, semilla, dragones, regla)
-        jugadoresRestantes.length match {
-          case 0 => return None
-          case 1 => return jugadoresRestantes.headOption
-          case _ => jugadoresRestantes
-        }
-      }
-      regla.obtenerGanador(finalistas2)
-    }
-
-    def jugar(equipos : List[List[Vikingo]], regla : ReglasPorEquipos): Option[List[Vikingo]] ={
-      val finalistas : List[List[Vikingo]] = postas.foldLeft(equipos) { (semilla: List[List[Vikingo]], posta: Posta) =>
-        val jugadoresRestantes = jugarRonda(posta, semilla.flatten, dragones, regla)
-        val equiposRestantes = reagruparEquipos(semilla,jugadoresRestantes)
-        equiposRestantes.length match {
-          case 0 => return None
-          case 1 => return equiposRestantes.headOption
-          case _ => equiposRestantes
-        }
-      }
-      regla.obtenerGanador(finalistas)
-    }
-
-    def reagruparEquipos(unosEquipos : List[List[Vikingo]], unosVikingos : List[Vikingo]) : List[List[Vikingo]] = {
-      val equipos = unosEquipos.foldLeft(List() : List[List[Vikingo]])((semilla : List[List[Vikingo]], equipo : List[Vikingo]) =>
-        (semilla :+ (unosVikingos.filter(unVikingo => equipo.exists(otroVikingo=>unVikingo.nombre==otroVikingo.nombre))))
-      )
-      equipos.filter(_.nonEmpty)
-    }
-
+  trait EstadoTorneo{
+    def jugar(unaPosta:Posta)(reglas:Regla)(dragones:List[Dragon]) : EstadoTorneo
 
     def obtenerVikingosDespuesDeLaPosta(jugadores : List[Jugador]) : List[Vikingo] = {
       jugadores.map(this.obtenerVikingo)
@@ -397,16 +361,70 @@ package object FestivalDelInvierno {
         case participante : Vikingo => participante
       }
     }
+    def vikingosQuePasanDeRonda(reglas:Regla,unaPosta:Posta,participantes:List[Vikingo],dragones:List[Dragon]):List[Vikingo] = {
+      val jugadoresPreparados = reglas.prepararParaUnaPosta(unaPosta, participantes, dragones)
+      val jugadoresRestantes = unaPosta.participarEnPosta(jugadoresPreparados)
+      val siguientes = reglas.quienesPasanALaSiguienteRonda(jugadoresRestantes)
+      this.obtenerVikingosDespuesDeLaPosta(siguientes)
+    }
 
-    def jugarRonda(unaPosta : Posta, unosVikingos : List[Vikingo], unosDragones : List[Dragon], regla : Regla): List[Vikingo] = {
-      obtenerVikingosDespuesDeLaPosta(
-        regla.quienesPasanALaSiguienteRonda(
-          unaPosta.participarEnPosta(regla.prepararParaUnaPosta(unaPosta,unosVikingos,unosDragones))
-        )
-      )
+  }
+
+  case class RondaEnCurso(participantes:List[Vikingo]) extends EstadoTorneo{
+    def jugar(unaPosta:Posta)(reglas:Regla)(dragones:List[Dragon]) : EstadoTorneo = {
+      val vikingosQuePasaron = this.vikingosQuePasanDeRonda(reglas,unaPosta,participantes,dragones)
+      vikingosQuePasaron.size match {
+        case 0 => Finalizado(None)
+        case 1 => Finalizado(vikingosQuePasaron.map(vikingo => vikingo:Participante).headOption)
+        case _ => RondaEnCurso(vikingosQuePasaron)
+      }
+    }
+  }
+
+  case class RondaPorEquipos(participantes:List[List[Vikingo]]) extends EstadoTorneo{
+    def jugar(unaPosta:Posta)(reglas:Regla)(dragones:List[Dragon]) : EstadoTorneo = {
+      val vikingosRestantes = this.vikingosQuePasanDeRonda(reglas,unaPosta,participantes.flatten,dragones)
+      val equiposRestantes = this.reagruparEquipos(participantes,vikingosRestantes)
+      equiposRestantes.size match{
+        case 0 =>Finalizado(None)
+        case 1 =>Finalizado(equiposRestantes.map(equipo => EquipoVikingo(equipo)).headOption)
+        case _ =>RondaPorEquipos(equiposRestantes)
+
+      }
     }
 
 
+    def reagruparEquipos(unosEquipos : List[List[Vikingo]], unosVikingos : List[Vikingo]) : List[List[Vikingo]] = {
+      val equipos = unosEquipos.foldLeft(List() : List[List[Vikingo]])((semilla : List[List[Vikingo]], equipo : List[Vikingo]) =>
+        (semilla :+ (unosVikingos.filter(unVikingo => equipo.exists(otroVikingo=>unVikingo.nombre==otroVikingo.nombre))))
+      )
+      equipos.filter(_.nonEmpty)
+    }
+  }
+
+  case class Finalizado(participantes: Option[Participante]) extends EstadoTorneo{
+    def jugar(unaPosta:Posta)(reglas:Regla)(dragones:List[Dragon]) : EstadoTorneo = this
+  }
+
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////// T O R N E O ///////////////////////////////////////////////////////////////////////////////////
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+  case class Torneo(dragones : List[Dragon], postas : List[Posta]) {
+    def jugar(estadoTorneo:EstadoTorneo)(reglas:Regla):Option[Participante] = {
+      val estadoFinal = postas.foldLeft(estadoTorneo) { (rondaAnterior, postaActual) =>
+        rondaAnterior.jugar(postaActual)(reglas)(dragones)
+      }
+      estadoFinal match {
+        case RondaEnCurso(participantes) => reglas.obtenerGanador(participantes)
+        case RondaPorEquipos(equipos) => equipos.size match {
+          case 0 => None
+          case 1 => equipos.map(vikingos => EquipoVikingo(vikingos)).headOption
+          case _ => Random.shuffle(equipos.map(vikingos => EquipoVikingo(vikingos))).headOption
+        }
+        case Finalizado(participantes) => participantes
+      }
+    }
   }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -417,7 +435,8 @@ package object FestivalDelInvierno {
 
     var dragonesRestantes : List[Dragon] = List()
 
-    def quienesPasanALaSiguienteRonda(participantes: List[Jugador]) : List[Jugador]
+    def quienesPasanALaSiguienteRonda(participantes: List[Jugador]) : List[Jugador] =
+      participantes.take(participantes.length / 2)
 
     def prepararParaUnaPosta(posta: Posta, vikingos: List[Vikingo], dragones : List[Dragon]): List[Jugador] = {
       dragonesRestantes = dragones
@@ -434,10 +453,13 @@ package object FestivalDelInvierno {
       vikingoPreparado match {
         case Some(Vikingo(_,_,_,_)) => ;
         case Some(Jinete(_,unDragon)) => dragonesRestantes = dragonesRestantes diff List(unDragon)
-        case None => ;
+        case _ => ;
       }
       vikingoPreparado
     }
+
+    def obtenerGanador(vikingos: List[Vikingo]): Option[Vikingo] = vikingos.headOption
+
   }
 
 
@@ -451,7 +473,6 @@ package object FestivalDelInvierno {
       jugadores.dropRight(jugadores.length / 2)
     }
 
-    def obtenerGanador(equipos : List[List[Vikingo]]): Option[List[Vikingo]] = Random.shuffle(equipos).headOption
 
   }
 
@@ -459,22 +480,13 @@ package object FestivalDelInvierno {
   ///////// E S T A N D A R ///////////
   /////////////////////////////////////
 
-  class ReglasEstandar extends Regla{
-
-
-    override def quienesPasanALaSiguienteRonda(jugadores: List[Jugador]): List[Jugador] = {
-      jugadores.take(jugadores.length / 2)
-    }
-
-    def obtenerGanador(vikingos: List[Vikingo]): Option[Vikingo] = vikingos.headOption
-
-  }
+  case class ReglasEstandar() extends Regla
 
   /////////////////////////////////////
   /// P O R   E L I M I N A C I O N ///
   /////////////////////////////////////
 
-  case class ReglasDeEliminacion(numeroDeParticipantesEliminadosParaLaSiguienteRonda : Int) extends ReglasEstandar{
+  case class ReglasDeEliminacion(numeroDeParticipantesEliminadosParaLaSiguienteRonda : Int) extends Regla {
     require(numeroDeParticipantesEliminadosParaLaSiguienteRonda>=0)
 
     override def quienesPasanALaSiguienteRonda(jugadores : List[Jugador]) : List[Jugador] = {
@@ -486,7 +498,7 @@ package object FestivalDelInvierno {
   //// T O R N E O   I N V E R S O ////
   /////////////////////////////////////
 
-  case object ReglasDeTorneoInverso extends ReglasEstandar{
+  case object ReglasDeTorneoInverso extends Regla{
 
     override def quienesPasanALaSiguienteRonda(jugadores: List[Jugador]): List[Jugador] = {
       jugadores.drop(jugadores.length / 2)
@@ -501,7 +513,7 @@ package object FestivalDelInvierno {
   ///////// P O R   V E T O ///////////
   /////////////////////////////////////
 
-  case class ReglasConVeto(condicionParaLosDragones : CondicionDragon) extends ReglasEstandar{
+  case class ReglasConVeto(condicionParaLosDragones : CondicionDragon) extends Regla{
 
 
     override def prepararParaUnaPosta(posta: Posta, vikingos: List[Vikingo], dragones: List[Dragon]): List[Jugador] = {
@@ -514,7 +526,7 @@ package object FestivalDelInvierno {
   ////// C O N   H A N D I C A P //////
   /////////////////////////////////////
 
-  case object ReglasConHandicap extends ReglasEstandar{
+  case object ReglasConHandicap extends Regla{
 
 
     override def prepararParaUnaPosta(posta: Posta, vikingos: List[Vikingo], dragones: List[Dragon]): List[Jugador] = {
@@ -523,6 +535,5 @@ package object FestivalDelInvierno {
   }
 
   type CondicionDragon = Dragon => Boolean
-
 
 }
