@@ -361,14 +361,18 @@ package object FestivalDelInvierno {
         case participante : Vikingo => participante
       }
     }
+    def vikingosQuePasanDeRonda(reglas:Regla,unaPosta:Posta,participantes:List[Vikingo],dragones:List[Dragon]):List[Vikingo] = {
+      val jugadoresPreparados = reglas.prepararParaUnaPosta(unaPosta, participantes, dragones)
+      val jugadoresRestantes = unaPosta.participarEnPosta(jugadoresPreparados)
+      val siguientes = reglas.quienesPasanALaSiguienteRonda(jugadoresRestantes)
+      this.obtenerVikingosDespuesDeLaPosta(siguientes)
+    }
+      
   }
   
   case class RondaEnCurso(participantes:List[Vikingo]) extends EstadoTorneo{
     def jugar(unaPosta:Posta)(reglas:Regla)(dragones:List[Dragon]) : EstadoTorneo = {
-      val jugadoresPreparados = reglas.prepararParaUnaPosta(unaPosta, participantes, dragones)
-      val jugadoresRestantes = unaPosta.participarEnPosta(jugadoresPreparados)
-      val siguientes = reglas.quienesPasanALaSiguienteRonda(jugadoresRestantes)
-      val vikingosQuePasaron = this.obtenerVikingosDespuesDeLaPosta(siguientes)
+      val vikingosQuePasaron = this.vikingosQuePasanDeRonda(reglas,unaPosta,participantes,dragones)
       vikingosQuePasaron.size match {
         case 0 => Finalizado(None)
         case 1 => Finalizado(vikingosQuePasaron.map(vikingo => vikingo:Participante).headOption)
@@ -379,10 +383,7 @@ package object FestivalDelInvierno {
 
   case class RondaPorEquipos(participantes:List[List[Vikingo]]) extends EstadoTorneo{
     def jugar(unaPosta:Posta)(reglas:Regla)(dragones:List[Dragon]) : EstadoTorneo = {
-      val jugadoresPreparados = reglas.prepararParaUnaPosta(unaPosta, participantes.flatten, dragones)
-      val jugadoresRestantes = unaPosta.participarEnPosta(jugadoresPreparados)
-      val siguientes = reglas.quienesPasanALaSiguienteRonda(jugadoresRestantes)
-      val vikingosRestantes = this.obtenerVikingosDespuesDeLaPosta(siguientes)
+      val vikingosRestantes = this.vikingosQuePasanDeRonda(reglas,unaPosta,participantes.flatten,dragones)
       val equiposRestantes = this.reagruparEquipos(participantes,vikingosRestantes)
       equiposRestantes.size match{
         case 0 =>Finalizado(None)
